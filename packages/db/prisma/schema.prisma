@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // pooled — used by apps/api
+  directUrl = env("DIRECT_URL")     // direct — used by prisma migrate and apps/worker
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  watchlists Watchlist[]
+  savedJobs  SavedJob[]
+  resumes    Resume[]
+
+  @@map("users")
+}
+
+model Company {
+  id         String   @id @default(uuid())
+  name       String
+  careersUrl String   @unique
+  platform   String
+  logoUrl    String?
+  createdAt  DateTime @default(now())
+
+  jobSources JobSource[]
+  jobs       Job[]
+  watchlists Watchlist[]
+
+  @@map("companies")
+}
+
+model JobSource {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  url         String
+  platform    String
+  lastFetchAt DateTime?
+  lastStatus  String?
+
+  @@map("job_sources")
+}
+
+model Job {
+  id              String    @id @default(uuid())
+  externalId      String
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  title           String
+  description     String
+  location        String?
+  workMode        String?
+  country         String?
+  employmentType  String?
+  salaryMin       Int?
+  salaryMax       Int?
+  salaryCurrency  String?
+  visaSponsorship Boolean?
+  tags            String[]
+  sourceUrl       String
+  sourcePlatform  String
+  postedAt        DateTime?
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  isActive        Boolean   @default(true)
+
+  savedJobs SavedJob[]
+
+  @@unique([companyId, externalId])
+  @@map("jobs")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
+  @@map("watchlists")
+}
+
+model SavedJob {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id])
+  status    String   @default("interested")
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@map("saved_jobs")
+}
+
+model Resume {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  fileUrl    String
+  skills     String[]
+  experience Json?
+  education  Json?
+  keywords   String[]
+  uploadedAt DateTime @default(now())
+
+  @@map("resumes")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  type      String
+  payload   Json
+  channel   String
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model SyncHistory {
+  id           String    @id @default(uuid())
+  companyId    String
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  status       String
+  jobsFound    Int       @default(0)
+  jobsNew      Int       @default(0)
+  jobsRemoved  Int       @default(0)
+  errorMessage String?
+
+  @@map("sync_history")
+}

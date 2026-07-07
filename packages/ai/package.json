@@ -1,0 +1,17 @@
+{
+  "name": "@aperture/ai",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"no lint configured\""
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@aperture/shared": "workspace:*"
+  },
+  "devDependencies": { "typescript": "^5.5.4" }
+}

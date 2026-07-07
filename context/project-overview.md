@@ -76,7 +76,7 @@ Aperture is a personal job-search tool that watches a curated list of companies'
 * AI-powered match scoring and job summarization.
 * Filterable dashboard, company watchlist, saved jobs, analytics.
 * Email/push/Telegram notifications.
-* Self-hosted deployment via Docker Compose.
+* Self-hosted deployment of `web`, `api`, and `worker` (VPS or PaaS), with Neon (Postgres) and Upstash (Redis).
 
 ### Out of Scope
 
@@ -91,17 +91,17 @@ Aperture is a personal job-search tool that watches a curated list of companies'
 
 | Layer            | Technology                          |
 | ----------------- | ------------------------------------ |
-| Frontend          | Next.js 14                          |
+| Frontend          | Next.js 16                          |
 | API               | NestJS                              |
 | Worker            | Node/TS (scheduler, connectors, AI jobs) |
 | Database          | PostgreSQL, Neon (managed) via Prisma |
-| Queue             | Redis + BullMQ                      |
+| Queue             | Redis + BullMQ (Upstash)            |
 | Browser automation | Playwright                          |
 | AI                | Anthropic Claude API                |
 | Auth              | Session-based (single-user MVP)     |
 | State Management  | Zustand                             |
 | Styling           | Tailwind CSS + shadcn/ui            |
-| Deployment        | Docker Compose (app tier) + Neon (DB) |
+| Deployment        | Self-hosted app tier + Neon + Upstash |
 
 ## Success Criteria
 

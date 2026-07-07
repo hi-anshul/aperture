@@ -23,18 +23,18 @@ Aperture is a self-hosted tool that continuously watches a set of companies' car
 
 | Layer | Choice | Purpose |
 |---|---|---|
-| Frontend | Next.js 14 (App Router) | Dashboard UI, filters, job detail views |
+| Frontend | Next.js 16 (App Router) | Dashboard UI, filters, job detail views |
 | API | NestJS | Auth, CRUD for companies/watchlist/saved jobs/resumes, read access to job data |
 | Worker | Node/TS long-running process | Scheduler, connectors, fetch/parse/normalize/dedupe pipeline, AI matching jobs |
 | Database | PostgreSQL, Neon (managed) via Prisma | Companies, jobs, watchlists, saved jobs, resumes, sync history |
-| Queue | Redis + BullMQ | Scheduling recurring fetch jobs, retry/backoff, rate limiting per company |
+| Queue | Redis + BullMQ (Upstash) | Scheduling recurring fetch jobs, retry/backoff, rate limiting per company |
 | Browser automation | Playwright | Fallback fetcher for JS-heavy / React-rendered careers pages |
 | AI | Anthropic Claude API | Resume ↔ job match scoring, job description summarization |
 | Search | PostgreSQL full-text (MVP) → Meilisearch (later) | Title/location/company/tag search |
 | Auth | Session-based, single-user MVP (`iron-session`) | Protects dashboard and API; designed to extend to multi-user later |
 | Styling | Tailwind CSS + shadcn/ui | UI |
 | State | Zustand | Dashboard filter state, saved-job status transitions |
-| Deploy | Docker Compose (app tier, self-hosted) + Neon (managed DB) | Redis + api + worker + web self-hosted; `docker compose up` for the app tier, Postgres runs on Neon |
+| Deploy | Self-hosted app tier + managed services | `web`/`api`/`worker` on a VPS or PaaS; Postgres on Neon; Redis on Upstash |
 
 ---
 
@@ -191,7 +191,6 @@ aperture/
 │   ├── ai/                           -- match scoring + summarization
 │   └── shared/                       -- cross-cutting types
 ├── specs/                            -- SDD context files (this document set)
-├── docker-compose.yml
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── .env.example
@@ -426,8 +425,8 @@ The worker exposes no public HTTP routes — it only reads/writes the database a
 DATABASE_URL=postgresql://<user>:<password>@<project>-pooler.<region>.aws.neon.tech/aperture?sslmode=require
 DIRECT_URL=postgresql://<user>:<password>@<project>.<region>.aws.neon.tech/aperture?sslmode=require
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Redis (Upstash — TLS URL from console.upstash.com)
+REDIS_URL=rediss://default:<password>@<endpoint>.upstash.io:6379
 
 # Auth
 SESSION_SECRET=

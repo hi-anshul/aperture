@@ -23,7 +23,7 @@ Job Intelligence Platform is a self-hosted tool that continuously watches a set 
 
 | Layer | Choice | Purpose |
 |---|---|---|
-| Frontend | Next.js 14 (App Router) | Dashboard UI, filters, job detail views |
+| Frontend | Next.js 16 (App Router) | Dashboard UI, filters, job detail views |
 | API | NestJS | Auth, CRUD for companies/watchlist/saved jobs/resumes, read access to job data |
 | Worker | Node/TS long-running process | Scheduler, connectors, fetch/parse/normalize/dedupe pipeline, AI matching jobs |
 | Database | PostgreSQL (via Prisma) | Companies, jobs, watchlists, saved jobs, resumes, sync history |
@@ -34,7 +34,7 @@ Job Intelligence Platform is a self-hosted tool that continuously watches a set 
 | Auth | Session-based, single-user MVP (`iron-session`) | Protects dashboard and API; designed to extend to multi-user later |
 | Styling | Tailwind CSS + shadcn/ui | UI |
 | State | Zustand | Dashboard filter state, saved-job status transitions |
-| Deploy | Docker Compose (self-hosted) | Postgres + Redis + api + worker + web, single `docker compose up` |
+| Deploy | Self-hosted app tier + managed services | `web`/`api`/`worker` on VPS or PaaS; Postgres on Neon; Redis on Upstash |
 
 ---
 
@@ -191,7 +191,6 @@ job-intelligence/
 │   ├── ai/                           -- match scoring + summarization
 │   └── shared/                       -- cross-cutting types
 ├── specs/                            -- SDD context files (this document set)
-├── docker-compose.yml
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── .env.example
@@ -425,8 +424,8 @@ The worker exposes no public HTTP routes — it only reads/writes the database a
 # Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/job_intelligence
 
-# Redis
-REDIS_URL=redis://localhost:6379
+# Redis (Upstash — TLS URL from console.upstash.com)
+REDIS_URL=rediss://default:<password>@<endpoint>.upstash.io:6379
 
 # Auth
 SESSION_SECRET=

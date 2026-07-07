@@ -4,7 +4,7 @@
 
 | Layer             | Technology                    | Role                                                                 |
 | ------------------ | ------------------------------ | ---------------------------------------------------------------------- |
-| Frontend           | Next.js 14 + TypeScript        | Dashboard UI, filters, job/company/resume views                       |
+| Frontend           | Next.js 16 + TypeScript        | Dashboard UI, filters, job/company/resume views                       |
 | API                | NestJS + TypeScript            | Auth, CRUD for companies/watchlists/saved jobs/resumes, read access to job data |
 | Worker             | Node/TS long-running process   | Scheduler, connectors, fetch/parse/normalize/dedupe pipeline, AI jobs |
 | UI                 | Tailwind CSS + shadcn/ui       | Component system and styling foundation                              |
@@ -14,7 +14,7 @@
 | Queue               | Redis + BullMQ                 | Scheduled fetch jobs, retries, per-company rate limiting              |
 | Browser Automation  | Playwright                     | Fallback fetcher for JS-heavy / React-rendered careers pages          |
 | AI                  | Anthropic Claude API           | Resume-to-job match scoring, job description summarization           |
-| Deployment          | Docker Compose (self-hosted app tier) + Neon (managed DB) | Redis + api + worker + web self-hosted; Postgres runs on Neon |
+| Deployment          | Self-hosted app tier + Neon + Upstash | `web`/`api`/`worker` on a VPS or PaaS; Postgres on Neon; Redis queue on Upstash |
 | Styling System      | CSS Variables + Design Tokens  | Consistent design system across dashboard and job cards               |
 | Icons               | Lucide React                   | Stroke-based icon system                                              |
 
@@ -39,7 +39,7 @@
 
 * **PostgreSQL (Neon)**: Stores companies, jobs, job sources, watchlists, saved jobs, resumes, notifications, and sync history — the single source of truth for all persistent state. Managed/cloud-hosted rather than self-run, using a pooled connection for `apps/api` and a direct connection for `apps/worker` and migrations
 * **Job Snapshot**: The `jobs` table itself is the snapshot; change detection compares a fresh normalized fetch against existing rows rather than maintaining a separate snapshot table
-* **Redis / BullMQ**: Stores queued and scheduled sync jobs, retry state, and per-company rate-limit counters — transient, never a source of truth for job data
+* **Redis / BullMQ (Upstash)**: Stores queued and scheduled sync jobs, retry state, and per-company rate-limit counters — transient, never a source of truth for job data
 * **Resume Storage**: Uploaded resume files stored in object storage (or local volume for self-hosted MVP); extracted skills/experience/keywords stored as structured columns in Postgres
 * **Runtime Execution Context**: Transient in-memory state during a single connector run (raw fetch results before normalization); never persisted directly
 * **Environment Variables**: API keys, session secret, database/queue connection strings

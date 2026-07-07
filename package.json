@@ -1,0 +1,23 @@
+{
+  "name": "aperture",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
+  "engines": { "node": ">=20.0.0" },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @aperture/db prisma:generate",
+    "db:migrate": "pnpm --filter @aperture/db prisma:migrate",
+    "db:studio": "pnpm --filter @aperture/db prisma:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.1.0",
+    "typescript": "^5.5.4",
+    "prettier": "^3.3.3",
+    "eslint": "^8.57.0"
+  }
+}
