@@ -23,7 +23,7 @@ Diff each sync's normalized results against the current `jobs` table state to pr
 - Write to `sync_history` incrementally, not just at the end of a run, so a crashed sync is still observable
 
 ## Acceptance Criteria
-- [ ] A sync with no real change on the source page produces an empty diff (no new/removed/updated)
-- [ ] A posting that disappears from the source is flipped to `is_active = false`, not deleted
-- [ ] A `sync_history` row is created for every run with accurate `jobs_found` / `jobs_new` / `jobs_removed` counts
-- [ ] A crashed sync mid-run leaves a `sync_history` row with `status = 'failed'` and an `error_message`, not a silently missing record
+- [x] A sync with no real change on the source page produces an empty diff (no new/removed/updated)
+- [x] A posting that disappears from the source is flipped to `is_active = false`, not deleted
+- [x] A `sync_history` row is created for every run with accurate `jobs_found` / `jobs_new` / `jobs_removed` counts
+- [x] A crashed sync mid-run leaves a `sync_history` row with `status = 'failed'` and an `error_message`, not a silently missing record

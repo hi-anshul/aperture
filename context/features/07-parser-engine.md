@@ -22,6 +22,6 @@ Convert raw fetched content (HTML/JSON) into `RawJob[]`. One parser per platform
 - A parser should be forgiving of missing/optional fields in the source data but must still produce a valid `RawJob` shape
 
 ## Acceptance Criteria
-- [ ] Greenhouse parser converts a real API response into valid `RawJob[]`
-- [ ] Parser has no network calls — fully testable with a static fixture file
-- [ ] Malformed or unexpected input produces a clear error rather than a silent empty result
+- [x] Greenhouse parser converts a real API response into valid `RawJob[]`
+- [x] Parser has no network calls — fully testable with a static fixture file
+- [x] Malformed or unexpected input produces a clear error rather than a silent empty result

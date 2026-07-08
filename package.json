@@ -12,6 +12,7 @@
     "typecheck": "turbo run typecheck",
     "db:generate": "pnpm --filter @aperture/db prisma:generate",
     "db:migrate": "pnpm --filter @aperture/db prisma:migrate",
+    "db:seed": "pnpm --filter @aperture/db prisma:seed",
     "db:studio": "pnpm --filter @aperture/db prisma:studio"
   },
   "devDependencies": {

@@ -15,9 +15,10 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
 
-  watchlists Watchlist[]
-  savedJobs  SavedJob[]
-  resumes    Resume[]
+  watchlists    Watchlist[]
+  savedJobs     SavedJob[]
+  resumes       Resume[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -30,9 +31,10 @@ model Company {
   logoUrl    String?
   createdAt  DateTime @default(now())
 
-  jobSources JobSource[]
-  jobs       Job[]
-  watchlists Watchlist[]
+  jobSources   JobSource[]
+  jobs         Job[]
+  watchlists   Watchlist[]
+  syncHistory  SyncHistory[]
 
   @@map("companies")
 }
@@ -46,6 +48,7 @@ model JobSource {
   lastFetchAt DateTime?
   lastStatus  String?
 
+  @@index([companyId])
   @@map("job_sources")
 }
 
@@ -75,6 +78,9 @@ model Job {
   savedJobs SavedJob[]
 
   @@unique([companyId, externalId])
+  @@index([companyId])
+  @@index([isActive])
+  @@index([postedAt])
   @@map("jobs")
 }
 
@@ -120,6 +126,7 @@ model Resume {
 model Notification {
   id        String    @id @default(uuid())
   userId    String
+  user      User      @relation(fields: [userId], references: [id])
   type      String
   payload   Json
   channel   String
@@ -132,6 +139,7 @@ model Notification {
 model SyncHistory {
   id           String    @id @default(uuid())
   companyId    String
+  company      Company   @relation(fields: [companyId], references: [id])
   startedAt    DateTime  @default(now())
   finishedAt   DateTime?
   status       String

@@ -1,0 +1,84 @@
+[
+  {
+    "sourcePlatform": "greenhouse",
+    "sourceUrl": "https://boards.greenhouse.io/example/jobs/12345",
+    "externalId": "12345",
+    "raw": {
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/12345",
+      "internal_job_id": 1001,
+      "location": { "name": "San Francisco, CA" },
+      "metadata": [
+        {
+          "id": 1,
+          "name": "Employment Type",
+          "value": "Full-time",
+          "value_type": "single_select"
+        },
+        {
+          "id": 2,
+          "name": "Salary Range",
+          "value": "$140,000 - $180,000 USD",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 12345,
+      "updated_at": "2026-06-26T17:05:44-04:00",
+      "requisition_id": "REQ-001",
+      "title": "Software Engineer",
+      "company_name": "Example Co",
+      "first_published": "2026-06-02T08:58:57-04:00",
+      "language": "en",
+      "content": "<p>Build reliable systems for our core platform.</p>",
+      "departments": [{ "id": 10, "name": "Engineering" }],
+      "offices": [
+        {
+          "id": 20,
+          "name": "San Francisco",
+          "location": "San Francisco, CA, United States"
+        }
+      ]
+    }
+  },
+  {
+    "sourcePlatform": "greenhouse",
+    "sourceUrl": "https://boards.greenhouse.io/example/jobs/67890",
+    "externalId": "67890",
+    "raw": {
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/67890",
+      "internal_job_id": 1002,
+      "location": { "name": "Remote" },
+      "metadata": [
+        {
+          "id": 3,
+          "name": "Job Posting Location",
+          "value": "Paris, France",
+          "value_type": "single_select"
+        },
+        {
+          "id": 4,
+          "name": "Workplace Type",
+          "value": "Remote",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 67890,
+      "updated_at": "2026-07-02T21:13:43-04:00",
+      "requisition_id": "REQ-002",
+      "title": "Product Manager (12 Month FTC)",
+      "company_name": "Example Co",
+      "first_published": "2026-07-02T03:24:50-04:00",
+      "language": "en",
+      "departments": [{ "id": 11, "name": "Product" }]
+    }
+  },
+  {
+    "sourcePlatform": "greenhouse",
+    "sourceUrl": "https://boards.greenhouse.io/example/jobs/99999",
+    "externalId": "99999",
+    "raw": {
+      "id": 99999,
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/99999",
+      "title": "Untitled"
+    }
+  }
+]

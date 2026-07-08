@@ -27,7 +27,7 @@ Build the core dashboard pages and shared layout shell.
 - Job detail panel slides in from the right rather than navigating away from the list
 
 ## Acceptance Criteria
-- [ ] All seven routes render within the shared `AppLayout` shell
-- [ ] Job list displays real data from `GET /api/jobs` with correct row density per `ui-context.md`
-- [ ] Clicking a job row opens the detail panel without a full navigation
-- [ ] No raw hex colors or inline styles appear in any dashboard component
+- [x] All seven routes render within the shared `AppLayout` shell
+- [x] Job list displays real data from `GET /api/jobs` with correct row density per `ui-context.md`
+- [x] Clicking a job row opens the detail panel without a full navigation
+- [x] No raw hex colors or inline styles appear in any dashboard component

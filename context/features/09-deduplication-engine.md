@@ -22,6 +22,6 @@ Merge the same job posting seen from multiple sources into one canonical record.
 - At MVP scale (platform connectors only), the DB unique constraint on `(company_id, external_id)` handles almost everything — the fuzzy fallback exists for future sources like LinkedIn reposts, if ever added
 
 ## Acceptance Criteria
-- [ ] Re-running a sync for a company with no actual changes does not create duplicate rows
-- [ ] A posting seen twice in the same sync (edge case) is written once
-- [ ] `last_seen_at` updates correctly on every sync that still finds an existing posting
+- [x] Re-running a sync for a company with no actual changes does not create duplicate rows
+- [x] A posting seen twice in the same sync (edge case) is written once
+- [x] `last_seen_at` updates correctly on every sync that still finds an existing posting

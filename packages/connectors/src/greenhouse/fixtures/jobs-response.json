@@ -1,0 +1,30 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/12345",
+      "internal_job_id": 1001,
+      "location": { "name": "San Francisco, CA" },
+      "metadata": null,
+      "id": 12345,
+      "updated_at": "2026-06-26T17:05:44-04:00",
+      "requisition_id": "REQ-001",
+      "title": "Software Engineer",
+      "company_name": "Example Co",
+      "first_published": "2026-06-02T08:58:57-04:00",
+      "language": "en"
+    },
+    {
+      "absolute_url": "https://boards.greenhouse.io/example/jobs/67890",
+      "internal_job_id": 1002,
+      "location": { "name": "Remote" },
+      "metadata": null,
+      "id": 67890,
+      "updated_at": "2026-07-02T21:13:43-04:00",
+      "requisition_id": "REQ-002",
+      "title": "Product Manager",
+      "company_name": "Example Co",
+      "first_published": "2026-07-02T03:24:50-04:00",
+      "language": "en"
+    }
+  ]
+}

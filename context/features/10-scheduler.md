@@ -24,7 +24,7 @@ Run the fetch pipeline for every tracked company on a fixed interval. No UI invo
 - Manual "sync now" trigger (used later by the dashboard) should enqueue the same job type, not a separate code path
 
 ## Acceptance Criteria
-- [ ] Scheduler enqueues exactly one sync job per tracked company per interval
-- [ ] A company added mid-cycle gets picked up on the next scheduled run without a restart
-- [ ] Scheduler has zero HTTP routes and no UI dependency
-- [ ] Failed company syncs don't block other companies' syncs in the same cycle
+- [x] Scheduler enqueues exactly one sync job per tracked company per interval
+- [x] A company added mid-cycle gets picked up on the next scheduled run without a restart
+- [x] Scheduler has zero HTTP routes and no UI dependency
+- [x] Failed company syncs don't block other companies' syncs in the same cycle

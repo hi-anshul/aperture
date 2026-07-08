@@ -24,7 +24,7 @@ Given a careers URL, determine which connector should handle it.
 - `unknown` is a valid, expected outcome — don't force a guess
 
 ## Acceptance Criteria
-- [ ] Known platform URLs (Greenhouse, Lever, Ashby, Workday patterns) resolve without a network call
-- [ ] Unrecognized URLs fall back to a single fetch + content inspection
-- [ ] Detected platform is persisted to `companies.platform`
-- [ ] A company that can't be confidently classified is marked `unknown` rather than defaulting incorrectly
+- [x] Known platform URLs (Greenhouse, Lever, Ashby, Workday patterns) resolve without a network call
+- [x] Unrecognized URLs fall back to a single fetch + content inspection
+- [x] Detected platform is persisted to `companies.platform`
+- [x] A company that can't be confidently classified is marked `unknown` rather than defaulting incorrectly

@@ -23,6 +23,6 @@ Map every platform's raw job fields into the single canonical `NormalizedJob` sh
 - Salary and location parsing will be messy — prefer conservative null over a wrong guess
 
 ## Acceptance Criteria
-- [ ] Every field in `NormalizedJob` is populated or explicitly null for a real Greenhouse posting
-- [ ] Normalizer is pure and independently unit-tested against fixture `RawJob` data
-- [ ] No code outside the normalizer reads a platform-specific raw field name
+- [x] Every field in `NormalizedJob` is populated or explicitly null for a real Greenhouse posting
+- [x] Normalizer is pure and independently unit-tested against fixture `RawJob` data
+- [x] No code outside the normalizer reads a platform-specific raw field name

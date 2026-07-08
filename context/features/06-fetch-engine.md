@@ -24,7 +24,7 @@ Handle downloading pages only — HTTP and browser automation, retries, timeouts
 - Failures here should produce structured errors that `sync_history.error_message` can record
 
 ## Acceptance Criteria
-- [ ] A failed fetch retries with backoff before giving up, and the final failure is surfaced as a structured error
-- [ ] Fetching a JS-rendered page via the Playwright path returns fully-rendered HTML
-- [ ] Two rapid fetches against the same company respect the configured rate limit
+- [x] A failed fetch retries with backoff before giving up, and the final failure is surfaced as a structured error
+- [x] Fetching a JS-rendered page via the Playwright path returns fully-rendered HTML
+- [x] Two rapid fetches against the same company respect the configured rate limit
 - [ ] No parsing logic exists anywhere in this module
