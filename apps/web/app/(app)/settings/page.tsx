@@ -1,18 +1,22 @@
-import { LogoutButton } from "@/components/logout-button";
+import { SettingsView } from "@/components/settings/settings-view";
+import { fetchSettings } from "@/lib/api/settings";
 
-export default function SettingsPage() {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Settings
-        </h1>
-        <p className="max-w-2xl text-sm text-[var(--text-secondary)]">
-          Notification channels, platform overrides, and sync interval controls
-          arrive in later phases.
+export default async function SettingsPage() {
+  try {
+    const settings = await fetchSettings();
+
+    return <SettingsView initialSettings={settings} />;
+  } catch {
+    return (
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+        <p className="text-sm font-medium text-[var(--text-primary)]">
+          Unable to load settings
         </p>
-      </div>
-      <LogoutButton />
-    </main>
-  );
+        <p className="max-w-md text-sm text-[var(--text-muted)]">
+          Settings could not be fetched. Check that the API is running and try
+          refreshing the page.
+        </p>
+      </main>
+    );
+  }
 }

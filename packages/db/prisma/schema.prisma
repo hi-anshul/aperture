@@ -10,10 +10,12 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id                   String   @id @default(uuid())
+  email                String   @unique
+  passwordHash         String
+  notificationChannel  String   @default("telegram") // 'email' | 'push' | 'telegram'
+  matchScoreThreshold  Int      @default(80)         // 0-100; high-match notifications
+  createdAt            DateTime @default(now())
 
   watchlists    Watchlist[]
   savedJobs     SavedJob[]
@@ -74,6 +76,12 @@ model Job {
   firstSeenAt     DateTime  @default(now())
   lastSeenAt      DateTime  @default(now())
   isActive        Boolean   @default(true)
+  matchScore         Int?
+  matchVerdict       String?   // 'good-match' | 'weak-match'
+  matchMissingSkills String[]  @default([])
+  matchExplanation   String?
+  matchedResumeId    String?
+  matchedAt          DateTime?
 
   savedJobs SavedJob[]
 
@@ -81,16 +89,18 @@ model Job {
   @@index([companyId])
   @@index([isActive])
   @@index([postedAt])
+  @@index([matchScore])
   @@map("jobs")
 }
 
 model Watchlist {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now())
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id])
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id])
+  notificationsEnabled  Boolean  @default(true)
+  createdAt             DateTime @default(now())
 
   @@unique([userId, companyId])
   @@map("watchlists")

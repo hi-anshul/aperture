@@ -40,6 +40,16 @@ Aperture is a self-hosted tool that continuously watches a set of companies' car
 
 ## 3. Data Models
 
+### `users`
+```sql
+id                      uuid primary key default gen_random_uuid()
+email                   text unique not null
+password_hash           text not null
+notification_channel    text not null default 'telegram'  -- 'email' | 'push' | 'telegram'
+match_score_threshold   integer not null default 80       -- 0-100; high-match notifications
+created_at              timestamptz default now()
+```
+
 ### `companies`
 ```sql
 id           uuid primary key default gen_random_uuid()
@@ -82,6 +92,12 @@ posted_at         timestamptz
 first_seen_at     timestamptz default now()
 last_seen_at      timestamptz default now()
 is_active         boolean default true
+match_score          integer              -- 0-100, null until scored
+match_verdict        text                 -- 'good-match' | 'weak-match'
+match_missing_skills text[] default '{}'
+match_explanation    text
+matched_resume_id    uuid                 -- resume used for the score
+matched_at           timestamptz
 unique (company_id, external_id)
 ```
 
@@ -391,7 +407,8 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 - One active resume at a time for MVP
 
 ### 11.7 Settings (`/settings`)
-- Notification channel config (email / push / Telegram)
+- Notification channel config (email / push / Telegram) — stored on `users.notificationChannel`
+- Match-score notification threshold (0–100) — stored on `users.matchScoreThreshold` (default 80)
 - Manual platform override for `unknown` companies
 - Sync interval
 
@@ -407,11 +424,14 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 | DELETE | `/api/companies/:id` | Remove a company |
 | GET | `/api/jobs` | List jobs (filters as query params) |
 | GET | `/api/jobs/:id` | Job detail incl. AI summary + match score |
+| POST | `/api/jobs/:id/rescore` | Enqueue on-demand AI re-score (async worker job) |
 | POST | `/api/watchlists` | Add company to watchlist |
 | DELETE | `/api/watchlists/:id` | Remove from watchlist |
 | POST | `/api/saved-jobs` | Save a job with a status |
 | PATCH | `/api/saved-jobs/:id` | Update status (interested/applied/rejected) |
 | POST | `/api/resumes` | Upload resume, triggers extraction |
+| GET | `/api/settings` | Notification channel + match-score threshold |
+| PATCH | `/api/settings` | Update notification channel + match-score threshold |
 | GET | `/api/analytics` | Jobs found, applied, ignored, companies hiring, avg match |
 
 The worker exposes no public HTTP routes — it only reads/writes the database and pushes to the notification channel directly.

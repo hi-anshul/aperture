@@ -1,5 +1,7 @@
 import { Worker, type ConnectionOptions } from "bullmq";
 
+import type { MatchQueue } from "../ai-jobs";
+import type { NotifyQueue, WatchlistNotifyStore } from "../notifications";
 import { SYNC_JOB_NAME } from "../scheduler";
 import { processSyncCompany, type SyncCompanyStore } from "./processor";
 
@@ -14,6 +16,12 @@ export interface SyncWorkerHandle {
   close(): Promise<void>;
 }
 
+export interface CreateSyncWorkerDeps {
+  matchQueue: MatchQueue;
+  notifyQueue: NotifyQueue;
+  notifyStore: WatchlistNotifyStore;
+}
+
 /**
  * BullMQ worker that processes one company sync per job.
  * Failures are isolated — one company's error does not block others.
@@ -21,6 +29,7 @@ export interface SyncWorkerHandle {
 export function createSyncWorker(
   connection: ConnectionOptions,
   store: SyncCompanyStore,
+  deps: CreateSyncWorkerDeps,
 ): SyncWorkerHandle {
   const worker = new Worker<SyncCompanyJobData>(
     SYNC_QUEUE_NAME,
@@ -29,7 +38,11 @@ export function createSyncWorker(
         throw new Error(`Unknown job name: ${job.name}`);
       }
 
-      const result = await processSyncCompany(job.data.companyId, store);
+      const result = await processSyncCompany(job.data.companyId, store, {
+        matchQueue: deps.matchQueue,
+        notifyQueue: deps.notifyQueue,
+        notifyStore: deps.notifyStore,
+      });
       console.log(
         `[sync-company] ${result.companyId} (${result.platform}): ` +
           `${result.jobsFound} found, ${result.jobsNew} new, ${result.jobsUpdated} updated`,

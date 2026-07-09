@@ -1,22 +1,112 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, RefreshCw, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MatchScoreBadge } from "@/components/jobs/match-score-badge";
+import {
+  clientFetchJob,
+  clientRescoreJob,
+} from "@/lib/api/jobs-client";
 import type { JobListItem } from "@/lib/api/types";
 import { formatPostedDate, formatSalary } from "@/lib/format";
 
 interface JobDetailPanelProps {
   job: JobListItem | null;
   onClose: () => void;
+  onMatchUpdated?: (job: JobListItem) => void;
 }
 
-export function JobDetailPanel({ job, onClose }: JobDetailPanelProps) {
+export function JobDetailPanel({
+  job,
+  onClose,
+  onMatchUpdated,
+}: JobDetailPanelProps) {
+  const [isRescoring, setIsRescoring] = useState(false);
+  const [rescoreMessage, setRescoreMessage] = useState<string | null>(null);
+  const [rescoreError, setRescoreError] = useState<string | null>(null);
+  const activeJobIdRef = useRef<string | null>(job?.id ?? null);
+
+  useEffect(() => {
+    activeJobIdRef.current = job?.id ?? null;
+    setIsRescoring(false);
+    setRescoreMessage(null);
+    setRescoreError(null);
+  }, [job?.id]);
+
   const salary = job
     ? formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency)
     : null;
+
+  async function handleRescore() {
+    if (!job || isRescoring) {
+      return;
+    }
+
+    const jobId = job.id;
+    const jobSnapshot = job;
+    const isActiveJob = () => activeJobIdRef.current === jobId;
+
+    setIsRescoring(true);
+    setRescoreError(null);
+    setRescoreMessage(null);
+
+    try {
+      await clientRescoreJob(jobId);
+      if (!isActiveJob()) {
+        return;
+      }
+      setRescoreMessage("Re-score queued — refreshing shortly…");
+
+      // Poll briefly for the worker to persist the new score.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (!isActiveJob()) {
+          return;
+        }
+        const detail = await clientFetchJob(jobId);
+        if (!isActiveJob()) {
+          return;
+        }
+        if (
+          detail.matchedAt &&
+          detail.matchedAt !== jobSnapshot.matchedAt
+        ) {
+          onMatchUpdated?.({
+            ...jobSnapshot,
+            matchScore: detail.matchScore,
+            matchVerdict: detail.matchVerdict,
+            matchMissingSkills: detail.matchMissingSkills,
+            matchExplanation: detail.matchExplanation,
+            matchedResumeId: detail.matchedResumeId,
+            matchedAt: detail.matchedAt,
+          });
+          setRescoreMessage("Match score updated.");
+          return;
+        }
+      }
+
+      if (!isActiveJob()) {
+        return;
+      }
+      setRescoreMessage(
+        "Re-score is still running — refresh the list in a moment.",
+      );
+    } catch (error) {
+      if (!isActiveJob()) {
+        return;
+      }
+      setRescoreError(
+        error instanceof Error ? error.message : "Failed to queue re-score",
+      );
+    } finally {
+      if (isActiveJob()) {
+        setIsRescoring(false);
+      }
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -58,17 +148,83 @@ export function JobDetailPanel({ job, onClose }: JobDetailPanelProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-default)] px-5 py-3">
-            <MatchScoreBadge />
-            <span className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
-              Interested
-            </span>
-            <span className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--text-muted)]">
-              Save and status controls in Phase 19
-            </span>
+            <MatchScoreBadge
+              score={job.matchScore}
+              verdict={job.matchVerdict}
+            />
+            {job.matchVerdict ? (
+              <span
+                className={
+                  job.matchVerdict === "good-match"
+                    ? "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-good)]"
+                    : "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-weak)]"
+                }
+              >
+                {job.matchVerdict === "good-match" ? "Good match" : "Weak match"}
+              </span>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void handleRescore();
+              }}
+              disabled={isRescoring}
+              className="ml-auto gap-1.5"
+            >
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isRescoring ? "animate-spin" : ""}`}
+              />
+              {isRescoring ? "Scoring…" : "Re-score"}
+            </Button>
           </div>
+
+          {(rescoreMessage || rescoreError) && (
+            <div className="border-b border-[var(--border-default)] px-5 py-2">
+              {rescoreError ? (
+                <p className="text-xs text-[var(--state-error)]">{rescoreError}</p>
+              ) : (
+                <p className="text-xs text-[var(--text-muted)]">{rescoreMessage}</p>
+              )}
+            </div>
+          )}
 
           <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
             <div className="space-y-5">
+              <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                  Match analysis
+                </h3>
+                {job.matchExplanation ? (
+                  <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                    {job.matchExplanation}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-[var(--text-muted)]">
+                    No match score yet. New postings are scored automatically
+                    after sync, or use Re-score once a resume is uploaded.
+                  </p>
+                )}
+                {job.matchMissingSkills.length > 0 ? (
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-[var(--text-muted)]">
+                      Missing skills
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {job.matchMissingSkills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="rounded-xl bg-[var(--bg-elevated)] px-2 py-0.5 text-xs text-[var(--text-secondary)]"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+
               <section className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                   AI summary

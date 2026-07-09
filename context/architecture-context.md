@@ -37,7 +37,7 @@
 
 ## Storage Model
 
-* **PostgreSQL (Neon)**: Stores companies, jobs, job sources, watchlists, saved jobs, resumes, notifications, and sync history — the single source of truth for all persistent state. Managed/cloud-hosted rather than self-run, using a pooled connection for `apps/api` and a direct connection for `apps/worker` and migrations
+* **PostgreSQL (Neon)**: Stores companies, jobs, job sources, watchlists, saved jobs, resumes, notifications, sync history, and per-user notification prefs (`users.notificationChannel`, `users.matchScoreThreshold`) — the single source of truth for all persistent state. Managed/cloud-hosted rather than self-run, using a pooled connection for `apps/api` and a direct connection for `apps/worker` and migrations
 * **Job Snapshot**: The `jobs` table itself is the snapshot; change detection compares a fresh normalized fetch against existing rows rather than maintaining a separate snapshot table
 * **Redis / BullMQ (Upstash)**: Stores queued and scheduled sync jobs, retry state, and per-company rate-limit counters — transient, never a source of truth for job data
 * **Resume Storage**: Uploaded resume files stored in object storage (or local volume for self-hosted MVP); extracted skills/experience/keywords stored as structured columns in Postgres

@@ -27,8 +27,20 @@ describe("processSyncCompany", () => {
       },
     };
 
+    const matchQueue = { add: vi.fn() };
+    const notifyQueue = { add: vi.fn() };
+    const notifyStore = {
+      user: { findMany: vi.fn() },
+      watchlist: { findMany: vi.fn() },
+      company: { findUnique: vi.fn() },
+    };
+
     await expect(
-      processSyncCompany("missing-company", store as never),
+      processSyncCompany("missing-company", store as never, {
+        matchQueue,
+        notifyQueue,
+        notifyStore,
+      }),
     ).rejects.toThrow("Company not found: missing-company");
 
     expect(syncHistoryUpdate).toHaveBeenCalledWith({

@@ -23,7 +23,7 @@ Let the user star specific companies for priority tracking and notifications.
 - Adding a company with a URL that fails platform detection should still succeed, just marked `platform: unknown` with a manual override available in Settings
 
 ## Acceptance Criteria
-- [ ] Adding a company by URL correctly triggers platform detection and appears in the Companies list
-- [ ] Starring/unstarring a company updates the watchlist immediately
-- [ ] A watchlisted company's new postings are visually distinguished in the Jobs list
-- [ ] Removing a company from the watchlist does not delete its historical job data
+- [x] Adding a company by URL correctly triggers platform detection and appears in the Companies list
+- [x] Starring/unstarring a company updates the watchlist immediately
+- [x] A watchlisted company's new postings are visually distinguished in the Jobs list
+- [x] Removing a company from the watchlist does not delete its historical job data

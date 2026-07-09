@@ -1,14 +1,22 @@
-export default function ResumePage() {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Resume
-        </h1>
-        <p className="max-w-2xl text-sm text-[var(--text-secondary)]">
-          Resume upload and extracted skills review will be built in Phase 16.
+import { ResumeView } from "@/components/resume/resume-view";
+import { fetchActiveResume } from "@/lib/api/resumes";
+
+export default async function ResumePage() {
+  try {
+    const resume = await fetchActiveResume();
+
+    return <ResumeView initialResume={resume} />;
+  } catch {
+    return (
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+        <p className="text-sm font-medium text-[var(--text-primary)]">
+          Unable to load resume
         </p>
-      </div>
-    </main>
-  );
+        <p className="max-w-md text-sm text-[var(--text-muted)]">
+          The active resume could not be fetched. Check that the API is running
+          and try refreshing the page.
+        </p>
+      </main>
+    );
+  }
 }

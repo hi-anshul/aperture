@@ -6,6 +6,7 @@ import {
 } from "@aperture/connectors";
 
 import { createDedupeEngine } from "../dedupe-engine";
+import type { MatchQueue } from "../ai-jobs";
 import {
   applyJobChanges,
   computeJobDiff,
@@ -13,9 +14,16 @@ import {
   type ExistingJobForDiff,
 } from "../change-detection";
 import { FetchError } from "../fetch-engine";
+import type { NotifyQueue, WatchlistNotifyStore } from "../notifications";
 import { createNormalizerEngine } from "../normalizer";
 import { ParserError } from "../parser-engine";
 import { type JobWriteClient } from "./write-jobs";
+
+export interface ProcessSyncCompanyDeps {
+  matchQueue: MatchQueue;
+  notifyQueue: NotifyQueue;
+  notifyStore: WatchlistNotifyStore;
+}
 
 export interface SyncCompanyRecord {
   id: string;
@@ -139,6 +147,7 @@ export function toSyncHistoryError(error: unknown): string {
 export async function processSyncCompany(
   companyId: string,
   store: SyncCompanyStore,
+  deps: ProcessSyncCompanyDeps,
 ): Promise<SyncCompanyResult> {
   const syncRecord = await store.syncHistory.create({
     data: {
@@ -277,7 +286,11 @@ export async function processSyncCompany(
       });
     });
 
-    await handoffJobDiff(diff);
+    await handoffJobDiff(diff, {
+      matchQueue: deps.matchQueue,
+      notifyQueue: deps.notifyQueue,
+      notifyStore: deps.notifyStore,
+    });
 
     return {
       companyId,

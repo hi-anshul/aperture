@@ -17,10 +17,16 @@ Update this file after every meaningful implementation change.
 - Phase 10: Scheduler — Completed
 - Phase 11: Change Detection — Completed
 - Phase 12: Search — Completed
+- Phase 13: Dashboard — Completed
+- Phase 14: Filters — Completed
+- Phase 15: Company Watchlist — Completed
+- Phase 16: Resume Upload — Completed
+- Phase 17: AI Matching — Completed
+- Phase 18: Notifications — Completed
 
 ## Current Goal
 
-- Phase 14: Filters (`features/14-filters.md`)
+- Phase 19: Saved Jobs (`features/19-saved-jobs.md`)
 
 ## Completed
 
@@ -156,19 +162,69 @@ Update this file after every meaningful implementation change.
   - Added `lucide-react`, `framer-motion`, `zustand` dependencies.
   - `pnpm --filter @aperture/web build` passes.
 
+- **Phase 14: Filters**
+  - Filter sidebar UI on `/jobs`: work mode, country, platform, visa sponsorship, employment type, salary min/max — per `ui-context.md` layout patterns with active-count badges on each section.
+  - Zustand `job-filters-store` (separate from `jobs-ui-store`) holds filter state; no prop drilling. Filter selections persist in `sessionStorage` for the browser tab session and reset when the tab closes.
+  - Client-side debounced refetch (300ms) against `GET /api/jobs` with filter query params; server-side Postgres filtering via existing Phase 12 API (AND semantics).
+  - Per-section clear buttons plus "Clear all" in sidebar header; empty-state copy distinguishes no jobs vs no filter matches.
+  - Experience-level filter deferred — `jobs` table has no experience column yet (only `resumes.experience`); will add when job data model supports it.
+  - `pnpm --filter @aperture/web build` passes.
+
+- **Phase 15: Company Watchlist**
+  - `GET /api/companies` and `POST /api/companies` in `apps/api/src/companies/` — add company by careers URL with `detectAndPersistPlatform()`; failed detection still creates the company as `platform: unknown`.
+  - `GET /api/watchlists`, `POST /api/watchlists`, `PATCH /api/watchlists/:id`, and `DELETE /api/watchlists/:id` in `apps/api/src/watchlists/` — star/unstar companies and per-company `notificationsEnabled` toggle (default true).
+  - `watchlists.notificationsEnabled` column added via migration `20260708140000_add_watchlist_notifications_enabled`.
+  - Fixed `20260708120000_add_jobs_tags_trgm_index`: wrapped `array_to_string` in `immutable_array_to_string()` so the GIN trigram index is valid in Postgres; tag search query updated to match.
+  - `GET /api/jobs` now includes `isFromWatchlistedCompany` per row for UI distinction.
+  - Companies page (`/companies`): add-company form, tracked-company list with platform badge, sync status, and star toggle.
+  - Watchlist page (`/watchlist`): starred companies with notification toggles; remove only deletes the watchlist row, not company/job history.
+  - Jobs list: watchlisted companies show a star icon; new postings from watchlisted companies get a glow accent bar and "Watchlisted" badge.
+  - `pnpm --filter @aperture/api test`, `pnpm --filter @aperture/api build`, and `pnpm --filter @aperture/web build` pass.
+
+- **Phase 16: Resume Upload**
+  - `GET /api/resumes` and `POST /api/resumes` in `apps/api/src/resumes/` — multipart PDF upload (max 10MB), user-scoped; active resume is the latest by `uploadedAt`.
+  - PDF text extraction via `pdf-parse`; structured extraction via Claude in `@aperture/ai` (`extractResumeFromText`) with schema validation before persistence.
+  - Extracted `skills`, `experience`, `education`, and `keywords` stored on `resumes`; a new upload deletes prior rows for that user (one active resume for MVP) and best-effort removes the old local file.
+  - Resume PDFs stored on a local volume (`RESUME_UPLOAD_DIR` or `<cwd>/uploads/resumes`); `file_url` is a `file://` path. `uploads/` gitignored.
+  - Resume page (`/resume`): upload form + review UI for skills, keywords, experience, and education after extraction.
+  - Shared types in `packages/shared` (`ExtractedResumeData`); prompt + validator tests in `packages/ai`.
+  - `pnpm --filter @aperture/ai test`, `pnpm --filter @aperture/api test`, `pnpm --filter @aperture/api build`, and `pnpm --filter @aperture/web build` pass.
+
+- **Phase 17: AI Matching**
+  - Claude match scoring in `@aperture/ai` (`matchJobToResume`) with versioned prompt (`JOB_MATCHING_SYSTEM_PROMPT` per `aperture-spec.md` §10) and schema validation via `parseMatchResultPayload` before any DB write.
+  - Queued worker jobs in `apps/worker/src/ai-jobs/` — Change Detection `handoffJobDiff` enqueues one BullMQ `ai-match` job per `newJobs` entry; never runs Claude inside HTTP handlers.
+  - Match fields persisted on `jobs`: `matchScore`, `matchVerdict`, `matchMissingSkills`, `matchExplanation`, `matchedResumeId`, `matchedAt` (migration `20260709120000_add_job_match_fields`).
+  - `GET /api/jobs/:id` returns match fields; `POST /api/jobs/:id/rescore` enqueues on-demand re-score only (async worker).
+  - Jobs list + detail panel show score badge, verdict, explanation, and missing skills; Re-score button polls until the worker persists a new result.
+  - Malformed AI output throws before persistence — existing match columns stay intact.
+  - Batch re-score of all historical jobs on resume change deferred (future enhancement, not MVP).
+  - `pnpm --filter @aperture/ai test`, `pnpm --filter @aperture/worker test -- src/ai-jobs`, `pnpm --filter @aperture/api test`, and builds for `api` / `worker` / `web` pass.
+
+- **Phase 18: Notifications**
+  - User prefs on `users`: `notificationChannel` (default `telegram`) and `matchScoreThreshold` (default `80`) via migration `20260709140000_add_user_notification_prefs`.
+  - BullMQ `notify` queue in `apps/worker/src/notifications/` — create `notifications` row with `sent_at` null, deliver, set `sent_at` on success; failures leave `sent_at` null and retry.
+  - Watchlist trigger: Change Detection `handoffJobDiff` enqueues `dream-company` notifications for new postings at companies with `watchlists.notificationsEnabled`.
+  - High-match trigger: AI match processor enqueues `high-match` when score ≥ user threshold, regardless of watchlist.
+  - MVP delivery: Telegram Bot API (`TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`); email/push prefs are stored but not delivered yet.
+  - `GET /api/settings` and `PATCH /api/settings` for channel + threshold; secrets never returned to the client.
+  - Settings page UI: channel radio + threshold input + save; logout retained.
+  - Fixture-based worker tests (11) in `notifications.test.ts`; `pnpm --filter @aperture/worker test -- src/notifications`, and builds for `worker` / `api` / `web` pass.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Phase 14: Filters (`features/14-filters.md`)
+- Phase 19: Saved Jobs (`features/19-saved-jobs.md`)
+- Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for live Telegram delivery.
 - Add Upstash `REDIS_URL` (TLS `rediss://` URL) to `.env` before running the worker.
+- Set `ANTHROPIC_API_KEY` in `.env` before uploading resumes or scoring matches (required for Claude).
 
 ## Open Questions
 
 - Auth approach for MVP: confirmed as session-based single-user (`iron-session`) per `architecture-context.md` — revisit if multi-user becomes a near-term goal.
-- Object storage for resume uploads: local volume vs. a managed bucket — not yet decided, defer until Phase 16 (Resume Upload).
+- Object storage for resume uploads: decided for MVP as local volume (`RESUME_UPLOAD_DIR`); revisit managed bucket (S3/R2) if deploying beyond a single host.
 
 ## Architecture Decisions
 
@@ -179,7 +235,12 @@ Update this file after every meaningful implementation change.
 - LinkedIn/Indeed/Naukri connectors deliberately excluded from MVP scope — platform connectors (Greenhouse/Lever/Ashby/Workday) plus generic/Playwright fallbacks cover direct career sites without fighting aggregator anti-scraping measures.
 - Database is Neon (managed Postgres), not self-hosted, using separate pooled (`apps/api`) and direct (`apps/worker`, migrations) connection strings.
 - Redis is Upstash (managed), not self-hosted via Docker — worker connects via `REDIS_URL` (`rediss://` TLS URL).
+- Filter state persists in `sessionStorage` (tab session only) via Zustand `persist` middleware — survives page refresh within the same tab, clears when the tab/browser session ends.
 - API traffic from the browser goes through Next.js rewrites (`/api/*`) so `iron-session` cookies remain same-origin; NestJS still enforces auth independently.
+- Resume extraction uses Claude (Anthropic) after `pdf-parse` text extraction — not a dedicated parsing library — so extraction quality stays aligned with Phase 17 matching prompts; output is schema-validated in `@aperture/ai` before DB write.
+- Resume PDF storage for MVP is a local volume (`RESUME_UPLOAD_DIR`); structured fields live in Postgres. One active resume per user: re-upload replaces prior rows.
+- AI match results live on the `jobs` row (not a separate table) for MVP single-user scoring; `matchedResumeId` records which resume produced the score. Re-score is always async via BullMQ.
+- Notification prefs live on `users` (channel + match threshold) rather than a separate settings table for MVP; Telegram credentials remain env-only.
 
 ## Session Notes
 
@@ -196,4 +257,11 @@ Update this file after every meaningful implementation change.
 - Executed Phase 11 from `11-change-detection.md`: Change Detection live in `apps/worker/src/change-detection`. Run `pnpm --filter @aperture/worker test -- src/change-detection` for fixture-based diff tests.
 - Executed Phase 12 from `12-search.md`: Search live in `apps/api/src/jobs`. Run `pnpm --filter @aperture/api test` for search/filter unit tests. Search via `GET /api/jobs?q=<term>`; combinable with filter params for Phase 14.
 - Executed Phase 13 from `13-dashboard.md`: Dashboard shell and jobs UI live in `apps/web`. Run `pnpm --filter @aperture/web build` to verify. Jobs list fetches `GET /api/jobs`; detail panel is client-side only (no route change).
-- `@aperture/db` and `@aperture/shared` now compile to `dist/` (required for Node 24 runtime resolution of workspace packages from `apps/api`).
+- Executed Phase 14 from `14-filters.md`: Filter sidebar + Zustand store live on `/jobs`. Filters persist in `sessionStorage` for the tab session. Run `pnpm --filter @aperture/web build` to verify. Server-side filtering uses existing `GET /api/jobs` query params from Phase 12.
+- Executed Phase 15 from `15-company-watchlist.md`: Companies + watchlist APIs and UI live. Run `pnpm --filter @aperture/api test` and `pnpm --filter @aperture/web build` to verify. Migrations `20260708120000_add_jobs_tags_trgm_index` and `20260708140000_add_watchlist_notifications_enabled` applied to Neon.
+- Executed Phase 16 from `16-resume-upload.md`: Resume upload + Claude extraction live. Set `ANTHROPIC_API_KEY` (and optionally `RESUME_UPLOAD_DIR`) in `.env`. Run `pnpm --filter @aperture/ai test`, `pnpm --filter @aperture/api test`, and `pnpm --filter @aperture/web build` to verify. Upload via `/resume` or `POST /api/resumes` (multipart field `file`).
+- Executed Phase 17 from `17-ai-matching.md`: AI matching live. Set `ANTHROPIC_API_KEY` and `REDIS_URL`, run the worker so `ai-match` jobs process. Re-score via job detail panel or `POST /api/jobs/:id/rescore`. Migration `20260709120000_add_job_match_fields` applied to Neon. If `prisma generate` hits EPERM on Windows, stop `pnpm dev` first.
+- Executed Phase 18 from `18-notifications.md`: Notifications live. Set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` (and `REDIS_URL`) for delivery. Configure channel/threshold on `/settings`. Migration `20260709140000_add_user_notification_prefs` applied to Neon. Run `pnpm --filter @aperture/worker test -- src/notifications` for fixture tests.
+- `@aperture/db` and `@aperture/shared` now compile to `dist/` (required for Node 24 runtime resolution of workspace packages from `apps/api`). `@aperture/ai` also compiles to `dist/` for the same reason.
+- Hardening pass: `listJobs` rejects missing `userId`; job-list keeps stale results on refetch failure; Greenhouse embed `?for=` name derivation; watchlist create maps only Prisma `P2002` to conflict; company/watchlist row actions surface toggle failures.
+- Job detail re-score polling ignores in-flight results after the selected job changes (`activeJobIdRef` guard). Default Claude model for match + resume extraction updated from retired `claude-sonnet-4-20250514` to `claude-sonnet-5` (`options.model` override unchanged).

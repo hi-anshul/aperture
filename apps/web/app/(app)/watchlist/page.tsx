@@ -1,15 +1,22 @@
-export default function WatchlistPage() {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Watchlist
-        </h1>
-        <p className="max-w-2xl text-sm text-[var(--text-secondary)]">
-          Starred companies and per-company notification toggles arrive in Phase
-          15.
+import { WatchlistView } from "@/components/watchlist/watchlist-view";
+import { fetchWatchlists } from "@/lib/api/watchlists";
+
+export default async function WatchlistPage() {
+  try {
+    const { watchlists } = await fetchWatchlists();
+
+    return <WatchlistView initialWatchlists={watchlists} />;
+  } catch {
+    return (
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+        <p className="text-sm font-medium text-[var(--text-primary)]">
+          Unable to load watchlist
         </p>
-      </div>
-    </main>
-  );
+        <p className="max-w-md text-sm text-[var(--text-muted)]">
+          The watchlist could not be fetched. Check that the API is running and
+          try refreshing the page.
+        </p>
+      </main>
+    );
+  }
 }

@@ -1,6 +1,7 @@
 export {
   processSyncCompany,
   toSyncHistoryError,
+  type ProcessSyncCompanyDeps,
   type SyncCompanyRecord,
   type SyncCompanyResult,
   type SyncCompanyStore,
@@ -9,6 +10,7 @@ export { writeDedupedJobs, type JobWriteClient, type WriteJobsResult } from "./w
 export {
   createSyncWorker,
   SYNC_QUEUE_NAME,
+  type CreateSyncWorkerDeps,
   type SyncCompanyJobData,
   type SyncWorkerHandle,
 } from "./worker";

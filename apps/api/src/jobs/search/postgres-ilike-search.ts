@@ -21,7 +21,7 @@ export class PostgresIlikeJobSearch implements JobSearchProvider {
     const rows = await prisma.$queryRaw<{ id: string }[]>`
       SELECT id
       FROM jobs
-      WHERE array_to_string(tags, ' ') ILIKE ${pattern}
+      WHERE immutable_array_to_string(tags, ' ') ILIKE ${pattern}
       LIMIT ${TAG_MATCH_LIMIT}
     `;
 

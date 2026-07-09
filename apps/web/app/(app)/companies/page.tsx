@@ -1,15 +1,22 @@
-export default function CompaniesPage() {
-  return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
-          Companies
-        </h1>
-        <p className="max-w-2xl text-sm text-[var(--text-secondary)]">
-          Tracked companies with platform badges and sync status will be built in
-          Phase 15.
+import { CompaniesView } from "@/components/companies/companies-view";
+import { fetchCompanies } from "@/lib/api/companies";
+
+export default async function CompaniesPage() {
+  try {
+    const { companies } = await fetchCompanies();
+
+    return <CompaniesView initialCompanies={companies} />;
+  } catch {
+    return (
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+        <p className="text-sm font-medium text-[var(--text-primary)]">
+          Unable to load companies
         </p>
-      </div>
-    </main>
-  );
+        <p className="max-w-md text-sm text-[var(--text-muted)]">
+          The companies list could not be fetched. Check that the API is running
+          and try refreshing the page.
+        </p>
+      </main>
+    );
+  }
 }

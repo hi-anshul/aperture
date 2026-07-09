@@ -25,7 +25,7 @@ Score every new job posting against the user's active resume using Claude, with 
 - Prompt lives in `packages/ai`, versioned and not inlined in the worker task file
 
 ## Acceptance Criteria
-- [ ] Every new posting from a sync gets a match score without manual triggering
-- [ ] Match score, verdict, missing skills, and explanation are all persisted and visible in the job detail panel
-- [ ] Malformed/invalid AI output is caught and does not corrupt stored data
-- [ ] Manual re-score from the dashboard works for a single job on demand
+- [x] Every new posting from a sync gets a match score without manual triggering
+- [x] Match score, verdict, missing skills, and explanation are all persisted and visible in the job detail panel
+- [x] Malformed/invalid AI output is caught and does not corrupt stored data
+- [x] Manual re-score from the dashboard works for a single job on demand

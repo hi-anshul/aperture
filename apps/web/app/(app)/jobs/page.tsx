@@ -3,11 +3,11 @@ import { fetchJobs } from "@/lib/api/jobs";
 
 export default async function JobsPage() {
   try {
-    const { jobs } = await fetchJobs();
+    const { jobs, total } = await fetchJobs();
 
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <JobsView jobs={jobs} />
+        <JobsView initialJobs={jobs} initialTotal={total} />
       </div>
     );
   } catch {

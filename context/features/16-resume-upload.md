@@ -25,7 +25,7 @@ Upload a resume PDF and extract skills, experience, education, and keywords.
 - Extraction should show the user what was parsed for review — don't silently trust it, since it directly feeds AI matching (Phase 17)
 
 ## Acceptance Criteria
-- [ ] Uploading a PDF resume produces a non-empty, reasonable set of extracted skills and keywords
-- [ ] The extracted data is shown to the user for review after upload
-- [ ] Re-uploading replaces the previous resume as the active one
-- [ ] Resume data is scoped to the owning user only
+- [x] Uploading a PDF resume produces a non-empty, reasonable set of extracted skills and keywords
+- [x] The extracted data is shown to the user for review after upload
+- [x] Re-uploading replaces the previous resume as the active one
+- [x] Resume data is scoped to the owning user only
