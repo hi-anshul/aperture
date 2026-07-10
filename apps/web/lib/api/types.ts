@@ -15,6 +15,13 @@ export interface JobMatchFields {
   matchedAt: string | null;
 }
 
+export type SavedJobStatus = "interested" | "applied" | "rejected";
+
+export interface JobSavedSummary {
+  id: string;
+  status: SavedJobStatus;
+}
+
 export interface JobListItem extends JobMatchFields {
   id: string;
   externalId: string;
@@ -34,7 +41,32 @@ export interface JobListItem extends JobMatchFields {
   firstSeenAt: string;
   lastSeenAt: string;
   isFromWatchlistedCompany: boolean;
+  savedJob: JobSavedSummary | null;
   company: JobCompany;
+}
+
+export interface SavedJobEntry {
+  id: string;
+  status: SavedJobStatus;
+  createdAt: string;
+  job: {
+    id: string;
+    title: string;
+    location: string | null;
+    workMode: string | null;
+    sourceUrl: string;
+    sourcePlatform: string;
+    matchScore: number | null;
+    matchVerdict: MatchVerdict | null;
+    postedAt: string | null;
+    firstSeenAt: string;
+    company: JobCompany;
+  };
+}
+
+export interface SavedJobsListResponse {
+  savedJobs: SavedJobEntry[];
+  total: number;
 }
 
 export interface JobDetail extends JobListItem {

@@ -23,10 +23,11 @@ Update this file after every meaningful implementation change.
 - Phase 16: Resume Upload — Completed
 - Phase 17: AI Matching — Completed
 - Phase 18: Notifications — Completed
+- Phase 19: Saved Jobs — Completed
 
 ## Current Goal
 
-- Phase 19: Saved Jobs (`features/19-saved-jobs.md`)
+- Phase 20: Analytics (`features/20-analytics.md`)
 
 ## Completed
 
@@ -210,13 +211,21 @@ Update this file after every meaningful implementation change.
   - Settings page UI: channel radio + threshold input + save; logout retained.
   - Fixture-based worker tests (11) in `notifications.test.ts`; `pnpm --filter @aperture/worker test -- src/notifications`, and builds for `worker` / `api` / `web` pass.
 
+- **Phase 19: Saved Jobs**
+  - `GET /api/saved-jobs`, `POST /api/saved-jobs`, and `PATCH /api/saved-jobs/:id` in `apps/api/src/saved-jobs/` — default status `interested`; unique `(userId, jobId)` prevents duplicate rows (idempotent POST returns existing).
+  - `GET /api/jobs` and `GET /api/jobs/:id` include `savedJob: { id, status } | null` so the list and detail panel know save state.
+  - Saved page (`/saved`): three-column kanban (Interested / Applied / Rejected) with HTML5 drag-and-drop; status colors from `ui-context.md`.
+  - Zustand `saved-jobs-store` applies optimistic column moves, reconciles with the PATCH response, and rolls back on failure.
+  - Save action on job list rows (bookmark) and job detail panel (Save + status selector); new saves land in Interested.
+  - DTO validation tests (4) in `create-saved-job.dto.test.ts`; `pnpm --filter @aperture/api test -- src/saved-jobs`, `pnpm --filter @aperture/api build`, and `pnpm --filter @aperture/web build` pass.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Phase 19: Saved Jobs (`features/19-saved-jobs.md`)
+- Phase 20: Analytics (`features/20-analytics.md`)
 - Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for live Telegram delivery.
 - Add Upstash `REDIS_URL` (TLS `rediss://` URL) to `.env` before running the worker.
 - Set `ANTHROPIC_API_KEY` in `.env` before uploading resumes or scoring matches (required for Claude).
@@ -262,6 +271,7 @@ Update this file after every meaningful implementation change.
 - Executed Phase 16 from `16-resume-upload.md`: Resume upload + Claude extraction live. Set `ANTHROPIC_API_KEY` (and optionally `RESUME_UPLOAD_DIR`) in `.env`. Run `pnpm --filter @aperture/ai test`, `pnpm --filter @aperture/api test`, and `pnpm --filter @aperture/web build` to verify. Upload via `/resume` or `POST /api/resumes` (multipart field `file`).
 - Executed Phase 17 from `17-ai-matching.md`: AI matching live. Set `ANTHROPIC_API_KEY` and `REDIS_URL`, run the worker so `ai-match` jobs process. Re-score via job detail panel or `POST /api/jobs/:id/rescore`. Migration `20260709120000_add_job_match_fields` applied to Neon. If `prisma generate` hits EPERM on Windows, stop `pnpm dev` first.
 - Executed Phase 18 from `18-notifications.md`: Notifications live. Set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` (and `REDIS_URL`) for delivery. Configure channel/threshold on `/settings`. Migration `20260709140000_add_user_notification_prefs` applied to Neon. Run `pnpm --filter @aperture/worker test -- src/notifications` for fixture tests.
+- Executed Phase 19 from `19-saved-jobs.md`: Saved jobs API + kanban live. Save from Jobs list/detail (defaults to Interested); drag cards on `/saved` to update status via optimistic Zustand + PATCH. Unique `(userId, jobId)` enforced. Run `pnpm --filter @aperture/api test -- src/saved-jobs` and `pnpm --filter @aperture/web build` to verify.
 - `@aperture/db` and `@aperture/shared` now compile to `dist/` (required for Node 24 runtime resolution of workspace packages from `apps/api`). `@aperture/ai` also compiles to `dist/` for the same reason.
 - Hardening pass: `listJobs` rejects missing `userId`; job-list keeps stale results on refetch failure; Greenhouse embed `?for=` name derivation; watchlist create maps only Prisma `P2002` to conflict; company/watchlist row actions surface toggle failures.
 - Job detail re-score polling ignores in-flight results after the selected job changes (`activeJobIdRef` guard). Default Claude model for match + resume extraction updated from retired `claude-sonnet-4-20250514` to `claude-sonnet-5` (`options.model` override unchanged).

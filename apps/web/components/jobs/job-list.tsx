@@ -8,20 +8,24 @@ interface JobListProps {
   jobs: JobListItem[];
   total: number;
   selectedJobId: string | null;
+  savingJobId: string | null;
   isLoading: boolean;
   hasActiveFilters: boolean;
   fetchError: boolean;
   onSelectJob: (job: JobListItem) => void;
+  onSaveJob: (job: JobListItem) => void;
 }
 
 export function JobList({
   jobs,
   total,
   selectedJobId,
+  savingJobId,
   isLoading,
   hasActiveFilters,
   fetchError,
   onSelectJob,
+  onSaveJob,
 }: JobListProps) {
   const countLabel =
     total === jobs.length
@@ -76,7 +80,9 @@ export function JobList({
                   key={job.id}
                   job={job}
                   isSelected={selectedJobId === job.id}
+                  isSaving={savingJobId === job.id}
                   onSelect={onSelectJob}
+                  onSave={onSaveJob}
                 />
               ))}
             </div>

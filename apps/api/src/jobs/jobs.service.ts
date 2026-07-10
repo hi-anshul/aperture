@@ -47,6 +47,15 @@ function mapMatchFields(job: {
   };
 }
 
+function mapSavedJobStatus(
+  status: string,
+): "interested" | "applied" | "rejected" {
+  if (status === "applied" || status === "rejected" || status === "interested") {
+    return status;
+  }
+  return "interested";
+}
+
 @Injectable()
 export class JobsService {
   constructor(
@@ -65,7 +74,7 @@ export class JobsService {
       : undefined;
     const where = await buildJobWhereClause({ filters, searchConstraint });
 
-    const [jobs, watchlistedCompanyIds] = await Promise.all([
+    const [jobs, watchlistedCompanyIds, savedJobs] = await Promise.all([
       prisma.job.findMany({
         where,
         include: {
@@ -83,35 +92,51 @@ export class JobsService {
         where: { userId },
         select: { companyId: true },
       }),
+      prisma.savedJob.findMany({
+        where: { userId },
+        select: { id: true, jobId: true, status: true },
+      }),
     ]);
 
     const watchlistedIds = new Set(
       watchlistedCompanyIds.map((entry) => entry.companyId),
     );
+    const savedByJobId = new Map(
+      savedJobs.map((entry) => [entry.jobId, entry]),
+    );
 
     return {
-      jobs: jobs.map((job) => ({
-        id: job.id,
-        externalId: job.externalId,
-        title: job.title,
-        location: job.location,
-        workMode: job.workMode,
-        country: job.country,
-        employmentType: job.employmentType,
-        salaryMin: job.salaryMin,
-        salaryMax: job.salaryMax,
-        salaryCurrency: job.salaryCurrency,
-        visaSponsorship: job.visaSponsorship,
-        tags: job.tags,
-        sourceUrl: job.sourceUrl,
-        sourcePlatform: job.sourcePlatform,
-        postedAt: job.postedAt?.toISOString() ?? null,
-        firstSeenAt: job.firstSeenAt.toISOString(),
-        lastSeenAt: job.lastSeenAt.toISOString(),
-        isFromWatchlistedCompany: watchlistedIds.has(job.companyId),
-        company: job.company,
-        ...mapMatchFields(job),
-      })),
+      jobs: jobs.map((job) => {
+        const saved = savedByJobId.get(job.id);
+        return {
+          id: job.id,
+          externalId: job.externalId,
+          title: job.title,
+          location: job.location,
+          workMode: job.workMode,
+          country: job.country,
+          employmentType: job.employmentType,
+          salaryMin: job.salaryMin,
+          salaryMax: job.salaryMax,
+          salaryCurrency: job.salaryCurrency,
+          visaSponsorship: job.visaSponsorship,
+          tags: job.tags,
+          sourceUrl: job.sourceUrl,
+          sourcePlatform: job.sourcePlatform,
+          postedAt: job.postedAt?.toISOString() ?? null,
+          firstSeenAt: job.firstSeenAt.toISOString(),
+          lastSeenAt: job.lastSeenAt.toISOString(),
+          isFromWatchlistedCompany: watchlistedIds.has(job.companyId),
+          savedJob: saved
+            ? {
+                id: saved.id,
+                status: mapSavedJobStatus(saved.status),
+              }
+            : null,
+          company: job.company,
+          ...mapMatchFields(job),
+        };
+      }),
       total: jobs.length,
     };
   }
@@ -138,15 +163,26 @@ export class JobsService {
       throw new NotFoundException("Job not found");
     }
 
-    const watchlisted = await prisma.watchlist.findUnique({
-      where: {
-        userId_companyId: {
-          userId,
-          companyId: job.companyId,
+    const [watchlisted, savedJob] = await Promise.all([
+      prisma.watchlist.findUnique({
+        where: {
+          userId_companyId: {
+            userId,
+            companyId: job.companyId,
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      }),
+      prisma.savedJob.findUnique({
+        where: {
+          userId_jobId: {
+            userId,
+            jobId: job.id,
+          },
+        },
+        select: { id: true, status: true },
+      }),
+    ]);
 
     return {
       id: job.id,
@@ -169,6 +205,12 @@ export class JobsService {
       lastSeenAt: job.lastSeenAt.toISOString(),
       isActive: job.isActive,
       isFromWatchlistedCompany: watchlisted != null,
+      savedJob: savedJob
+        ? {
+            id: savedJob.id,
+            status: mapSavedJobStatus(savedJob.status),
+          }
+        : null,
       company: job.company,
       ...mapMatchFields(job),
       // Phase 21 will populate structured AI summary fields.

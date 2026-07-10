@@ -22,6 +22,6 @@ Let the user track jobs through three simple states: Interested, Applied, Reject
 - Save action available directly from both the job list and the job detail panel
 
 ## Acceptance Criteria
-- [ ] Saving a job from the list or detail panel adds it to "Interested" by default
-- [ ] Dragging a card between kanban columns updates its status and persists correctly on refresh
-- [ ] A job can only be saved once per user (no duplicate saved-job rows)
+- [x] Saving a job from the list or detail panel adds it to "Interested" by default
+- [x] Dragging a card between kanban columns updates its status and persists correctly on refresh
+- [x] A job can only be saved once per user (no duplicate saved-job rows)

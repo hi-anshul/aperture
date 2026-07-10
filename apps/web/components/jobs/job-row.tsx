@@ -1,6 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { Bookmark, Star } from "lucide-react";
 import { MatchScoreBadge } from "@/components/jobs/match-score-badge";
 import type { JobListItem } from "@/lib/api/types";
 import { formatPostedDate } from "@/lib/format";
@@ -12,22 +12,29 @@ const MAX_VISIBLE_TAGS = 2;
 interface JobRowProps {
   job: JobListItem;
   isSelected: boolean;
+  isSaving?: boolean;
   onSelect: (job: JobListItem) => void;
+  onSave: (job: JobListItem) => void;
 }
 
-export function JobRow({ job, isSelected, onSelect }: JobRowProps) {
+export function JobRow({
+  job,
+  isSelected,
+  isSaving = false,
+  onSelect,
+  onSave,
+}: JobRowProps) {
   const isJobNew = useJobsUiStore((state) => state.isJobNew);
   const isNew = isJobNew(job.id, job.firstSeenAt);
   const isWatchlistedNew = isNew && job.isFromWatchlistedCompany;
   const visibleTags = job.tags.slice(0, MAX_VISIBLE_TAGS);
   const hiddenTagCount = job.tags.length - visibleTags.length;
+  const isSaved = job.savedJob != null;
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(job)}
+    <div
       className={cn(
-        "relative flex w-full items-center gap-4 px-4 py-3 text-left transition",
+        "relative flex w-full items-center gap-2 px-2 py-3 text-left transition",
         "hover:bg-[var(--bg-hover)]",
         isSelected && "bg-[var(--bg-hover)]",
         isNew &&
@@ -35,9 +42,13 @@ export function JobRow({ job, isSelected, onSelect }: JobRowProps) {
             ? "before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-[var(--accent-primary)] before:shadow-[0_0_12px_var(--accent-primary)]"
             : "before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-[var(--accent-primary)]"),
       )}
-      aria-pressed={isSelected}
     >
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => onSelect(job)}
+        className="min-w-0 flex-1 px-2 text-left"
+        aria-pressed={isSelected}
+      >
         <div className="flex items-start justify-between gap-3">
           <p className="truncate text-sm font-medium text-[var(--text-primary)]">
             {job.title}
@@ -94,7 +105,31 @@ export function JobRow({ job, isSelected, onSelect }: JobRowProps) {
             ) : null}
           </div>
         ) : null}
-      </div>
-    </button>
+      </button>
+
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!isSaved && !isSaving) {
+            onSave(job);
+          }
+        }}
+        disabled={isSaved || isSaving}
+        className={cn(
+          "mr-2 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition",
+          isSaved
+            ? "text-[var(--accent-primary)]"
+            : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)] hover:text-[var(--accent-primary)]",
+          isSaving && "opacity-60",
+        )}
+        aria-label={isSaved ? "Job already saved" : "Save job"}
+        title={isSaved ? "Saved" : "Save"}
+      >
+        <Bookmark
+          className={cn("h-4 w-4", isSaved && "fill-[var(--accent-primary)]")}
+        />
+      </button>
+    </div>
   );
 }

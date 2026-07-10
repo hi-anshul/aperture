@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ExternalLink, RefreshCw, X } from "lucide-react";
+import { Bookmark, ExternalLink, RefreshCw, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MatchScoreBadge } from "@/components/jobs/match-score-badge";
@@ -10,23 +10,45 @@ import {
   clientFetchJob,
   clientRescoreJob,
 } from "@/lib/api/jobs-client";
-import type { JobListItem } from "@/lib/api/types";
+import {
+  clientSaveJob,
+  clientUpdateSavedJobStatus,
+} from "@/lib/api/saved-jobs-client";
+import type { JobListItem, SavedJobStatus } from "@/lib/api/types";
 import { formatPostedDate, formatSalary } from "@/lib/format";
+import { cn } from "@/lib/utils";
+
+const STATUS_OPTIONS: Array<{ value: SavedJobStatus; label: string }> = [
+  { value: "interested", label: "Interested" },
+  { value: "applied", label: "Applied" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const STATUS_TEXT: Record<SavedJobStatus, string> = {
+  interested: "text-[var(--accent-primary)]",
+  applied: "text-[var(--state-success)]",
+  rejected: "text-[var(--state-error)]",
+};
 
 interface JobDetailPanelProps {
   job: JobListItem | null;
   onClose: () => void;
   onMatchUpdated?: (job: JobListItem) => void;
+  onSavedUpdated?: (job: JobListItem) => void;
 }
 
 export function JobDetailPanel({
   job,
   onClose,
   onMatchUpdated,
+  onSavedUpdated,
 }: JobDetailPanelProps) {
   const [isRescoring, setIsRescoring] = useState(false);
   const [rescoreMessage, setRescoreMessage] = useState<string | null>(null);
   const [rescoreError, setRescoreError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const activeJobIdRef = useRef<string | null>(job?.id ?? null);
 
   useEffect(() => {
@@ -34,6 +56,9 @@ export function JobDetailPanel({
     setIsRescoring(false);
     setRescoreMessage(null);
     setRescoreError(null);
+    setIsSaving(false);
+    setIsUpdatingStatus(false);
+    setSaveError(null);
   }, [job?.id]);
 
   const salary = job
@@ -108,6 +133,86 @@ export function JobDetailPanel({
     }
   }
 
+  async function handleSave() {
+    if (!job || job.savedJob || isSaving) {
+      return;
+    }
+
+    const jobId = job.id;
+    const jobSnapshot = job;
+    const isActiveJob = () => activeJobIdRef.current === jobId;
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const saved = await clientSaveJob(jobId, "interested");
+      if (!isActiveJob()) {
+        return;
+      }
+      onSavedUpdated?.({
+        ...jobSnapshot,
+        savedJob: { id: saved.id, status: saved.status },
+      });
+    } catch (error) {
+      if (!isActiveJob()) {
+        return;
+      }
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save job",
+      );
+    } finally {
+      if (isActiveJob()) {
+        setIsSaving(false);
+      }
+    }
+  }
+
+  async function handleStatusChange(status: SavedJobStatus) {
+    if (!job?.savedJob || isUpdatingStatus || job.savedJob.status === status) {
+      return;
+    }
+
+    const jobId = job.id;
+    const jobSnapshot = job;
+    const previousStatus = job.savedJob.status;
+    const isActiveJob = () => activeJobIdRef.current === jobId;
+
+    // Optimistic UI — reconcile with API response.
+    onSavedUpdated?.({
+      ...jobSnapshot,
+      savedJob: { id: job.savedJob.id, status },
+    });
+    setIsUpdatingStatus(true);
+    setSaveError(null);
+
+    try {
+      const updated = await clientUpdateSavedJobStatus(job.savedJob.id, status);
+      if (!isActiveJob()) {
+        return;
+      }
+      onSavedUpdated?.({
+        ...jobSnapshot,
+        savedJob: { id: updated.id, status: updated.status },
+      });
+    } catch (error) {
+      if (!isActiveJob()) {
+        return;
+      }
+      onSavedUpdated?.({
+        ...jobSnapshot,
+        savedJob: { id: jobSnapshot.savedJob!.id, status: previousStatus },
+      });
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to update status",
+      );
+    } finally {
+      if (isActiveJob()) {
+        setIsUpdatingStatus(false);
+      }
+    }
+  }
+
   return (
     <AnimatePresence>
       {job ? (
@@ -147,37 +252,93 @@ export function JobDetailPanel({
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-default)] px-5 py-3">
-            <MatchScoreBadge
-              score={job.matchScore}
-              verdict={job.matchVerdict}
-            />
-            {job.matchVerdict ? (
-              <span
-                className={
-                  job.matchVerdict === "good-match"
-                    ? "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-good)]"
-                    : "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-weak)]"
-                }
-              >
-                {job.matchVerdict === "good-match" ? "Good match" : "Weak match"}
-              </span>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                void handleRescore();
-              }}
-              disabled={isRescoring}
-              className="ml-auto gap-1.5"
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 ${isRescoring ? "animate-spin" : ""}`}
+          <div className="flex flex-col gap-3 border-b border-[var(--border-default)] px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <MatchScoreBadge
+                score={job.matchScore}
+                verdict={job.matchVerdict}
               />
-              {isRescoring ? "Scoring…" : "Re-score"}
-            </Button>
+              {job.matchVerdict ? (
+                <span
+                  className={
+                    job.matchVerdict === "good-match"
+                      ? "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-good)]"
+                      : "rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] px-2.5 py-1 text-xs text-[var(--match-weak)]"
+                  }
+                >
+                  {job.matchVerdict === "good-match" ? "Good match" : "Weak match"}
+                </span>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void handleRescore();
+                }}
+                disabled={isRescoring}
+                className="ml-auto gap-1.5"
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${isRescoring ? "animate-spin" : ""}`}
+                />
+                {isRescoring ? "Scoring…" : "Re-score"}
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {job.savedJob ? (
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label="Saved job status"
+                >
+                  {STATUS_OPTIONS.map((option) => {
+                    const isActive = job.savedJob?.status === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        disabled={isUpdatingStatus}
+                        onClick={() => {
+                          void handleStatusChange(option.value);
+                        }}
+                        className={cn(
+                          "rounded-xl border px-2.5 py-1 text-xs transition",
+                          isActive
+                            ? cn(
+                                "border-[var(--border-default)] bg-[var(--bg-surface)] font-medium",
+                                STATUS_TEXT[option.value],
+                              )
+                            : "border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-surface)] hover:text-[var(--text-secondary)]",
+                          isUpdatingStatus && "opacity-60",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void handleSave();
+                  }}
+                  disabled={isSaving}
+                  className="gap-1.5"
+                >
+                  <Bookmark className="h-3.5 w-3.5" />
+                  {isSaving ? "Saving…" : "Save"}
+                </Button>
+              )}
+            </div>
+
+            {saveError ? (
+              <p className="text-xs text-[var(--state-error)]">{saveError}</p>
+            ) : null}
           </div>
 
           {(rescoreMessage || rescoreError) && (

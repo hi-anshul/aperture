@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { clientFetchJobs } from "@/lib/api/jobs-client";
+import { clientSaveJob } from "@/lib/api/saved-jobs-client";
 import type { JobListItem } from "@/lib/api/types";
 import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import {
@@ -26,6 +27,7 @@ export function JobsView({ initialJobs, initialTotal }: JobsViewProps) {
   const [total, setTotal] = useState(initialTotal);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [savingJobId, setSavingJobId] = useState<string | null>(null);
   const [hasHydratedFilters, setHasHydratedFilters] = useState(
     () => useJobFiltersStore.persist.hasHydrated(),
   );
@@ -153,6 +155,36 @@ export function JobsView({ initialJobs, initialTotal }: JobsViewProps) {
     );
   }
 
+  function handleSavedUpdated(updated: JobListItem) {
+    setJobs((current) =>
+      current.map((job) =>
+        job.id === updated.id
+          ? { ...job, savedJob: updated.savedJob }
+          : job,
+      ),
+    );
+  }
+
+  async function handleSaveJob(job: JobListItem) {
+    if (job.savedJob || savingJobId) {
+      return;
+    }
+
+    setSavingJobId(job.id);
+
+    try {
+      const saved = await clientSaveJob(job.id, "interested");
+      handleSavedUpdated({
+        ...job,
+        savedJob: { id: saved.id, status: saved.status },
+      });
+    } catch {
+      // Row stays unsaved; user can retry.
+    } finally {
+      setSavingJobId(null);
+    }
+  }
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <FilterSidebar />
@@ -160,15 +192,20 @@ export function JobsView({ initialJobs, initialTotal }: JobsViewProps) {
         jobs={jobs}
         total={total}
         selectedJobId={selectedJobId}
+        savingJobId={savingJobId}
         isLoading={isLoading}
         hasActiveFilters={activeFilterCount > 0}
         fetchError={fetchError}
         onSelectJob={handleSelectJob}
+        onSaveJob={(job) => {
+          void handleSaveJob(job);
+        }}
       />
       <JobDetailPanel
         job={selectedJob}
         onClose={handleClosePanel}
         onMatchUpdated={handleMatchUpdated}
+        onSavedUpdated={handleSavedUpdated}
       />
     </div>
   );
