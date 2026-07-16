@@ -30,7 +30,7 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-56 shrink-0 border-r border-[var(--border-default)] bg-[var(--bg-elevated)] md:flex md:flex-col">
+    <aside className="hidden h-full w-56 shrink-0 overflow-y-auto border-r border-[var(--border-default)] bg-[var(--bg-elevated)] md:flex md:flex-col">
       <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Main">
         {NAV_ITEMS.map((item) => {
           const isActive =

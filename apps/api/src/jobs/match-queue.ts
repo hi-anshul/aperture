@@ -35,7 +35,7 @@ export async function enqueueJobRescore(
 ): Promise<void> {
   const queue = getMatchQueue();
   await queue.add(AI_MATCH_JOB_NAME, data, {
-    jobId: `match:${data.jobId}:${Date.now()}`,
+    jobId: `match-${data.jobId}-${Date.now()}`,
     removeOnComplete: 100,
     removeOnFail: 50,
     attempts: 3,

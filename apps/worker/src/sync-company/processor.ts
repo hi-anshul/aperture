@@ -33,9 +33,14 @@ export interface SyncCompanyRecord {
   logoUrl: string | null;
 }
 
+/** Large Greenhouse boards (e.g. Stripe) need a long interactive tx window. */
+const SYNC_WRITE_TRANSACTION_TIMEOUT_MS = 300_000;
+const SYNC_WRITE_TRANSACTION_MAX_WAIT_MS = 60_000;
+
 export interface SyncCompanyStore extends PlatformPersistenceClient, JobWriteClient {
   $transaction<T>(
     fn: (tx: Omit<SyncCompanyStore, "$transaction">) => Promise<T>,
+    options?: { maxWait?: number; timeout?: number },
   ): Promise<T>;
   company: PlatformPersistenceClient["company"] & {
     findUnique(args: {
@@ -230,67 +235,80 @@ export async function processSyncCompany(
 
     const diff = computeJobDiff(companyId, deduped.jobs, existingForDiff);
 
-    await store.$transaction(async (tx) => {
-      await tx.syncHistory.update({
-        where: { id: syncRecord.id },
-        data: {
-          jobsFound: normalized.length,
-          jobsNew: diff.newJobs.length,
-          jobsRemoved: diff.removedJobIds.length,
-        },
-      });
+    await store.$transaction(
+      async (tx) => {
+        await tx.syncHistory.update({
+          where: { id: syncRecord.id },
+          data: {
+            jobsFound: normalized.length,
+            jobsNew: diff.newJobs.length,
+            jobsRemoved: diff.removedJobIds.length,
+          },
+        });
 
-      await applyJobChanges(
-        tx,
-        deduped.jobs,
-        diff,
-        existingForDiff,
+        await applyJobChanges(
+          tx,
+          deduped.jobs,
+          diff,
+          existingForDiff,
+        );
+
+        const existingSource = await tx.jobSource.findFirst({
+          where: { companyId },
+          select: { id: true },
+        });
+
+        if (existingSource) {
+          await tx.jobSource.update({
+            where: { id: existingSource.id },
+            data: {
+              platform,
+              lastFetchAt: syncedAt,
+              lastStatus: "success",
+            },
+          });
+        } else {
+          await tx.jobSource.create({
+            data: {
+              companyId,
+              url: company.careersUrl,
+              platform,
+              lastFetchAt: syncedAt,
+              lastStatus: "success",
+            },
+          });
+        }
+
+        await tx.syncHistory.update({
+          where: { id: syncRecord.id },
+          data: {
+            finishedAt: new Date(),
+            status: "success",
+            jobsFound: normalized.length,
+            jobsNew: diff.newJobs.length,
+            jobsRemoved: diff.removedJobIds.length,
+            errorMessage: null,
+          },
+        });
+      },
+      {
+        maxWait: SYNC_WRITE_TRANSACTION_MAX_WAIT_MS,
+        timeout: SYNC_WRITE_TRANSACTION_TIMEOUT_MS,
+      },
+    );
+
+    try {
+      await handoffJobDiff(diff, {
+        matchQueue: deps.matchQueue,
+        notifyQueue: deps.notifyQueue,
+        notifyStore: deps.notifyStore,
+      });
+    } catch (handoffError) {
+      console.error(
+        `[sync-company] Handoff failed for ${companyId} (jobs already saved):`,
+        handoffError,
       );
-
-      const existingSource = await tx.jobSource.findFirst({
-        where: { companyId },
-        select: { id: true },
-      });
-
-      if (existingSource) {
-        await tx.jobSource.update({
-          where: { id: existingSource.id },
-          data: {
-            platform,
-            lastFetchAt: syncedAt,
-            lastStatus: "success",
-          },
-        });
-      } else {
-        await tx.jobSource.create({
-          data: {
-            companyId,
-            url: company.careersUrl,
-            platform,
-            lastFetchAt: syncedAt,
-            lastStatus: "success",
-          },
-        });
-      }
-
-      await tx.syncHistory.update({
-        where: { id: syncRecord.id },
-        data: {
-          finishedAt: new Date(),
-          status: "success",
-          jobsFound: normalized.length,
-          jobsNew: diff.newJobs.length,
-          jobsRemoved: diff.removedJobIds.length,
-          errorMessage: null,
-        },
-      });
-    });
-
-    await handoffJobDiff(diff, {
-      matchQueue: deps.matchQueue,
-      notifyQueue: deps.notifyQueue,
-      notifyStore: deps.notifyStore,
-    });
+    }
 
     return {
       companyId,

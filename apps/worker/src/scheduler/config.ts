@@ -13,4 +13,4 @@ export function getSchedulerConfig(): SchedulerConfig {
   };
 }
 
-export const SYNC_JOB_NAME = "sync-company";
+export { SYNC_JOB_NAME } from "@aperture/shared";

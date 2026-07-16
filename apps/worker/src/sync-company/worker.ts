@@ -1,11 +1,11 @@
 import { Worker, type ConnectionOptions } from "bullmq";
+import { SYNC_JOB_NAME, SYNC_QUEUE_NAME } from "@aperture/shared";
 
 import type { MatchQueue } from "../ai-jobs";
 import type { NotifyQueue, WatchlistNotifyStore } from "../notifications";
-import { SYNC_JOB_NAME } from "../scheduler";
 import { processSyncCompany, type SyncCompanyStore } from "./processor";
 
-export const SYNC_QUEUE_NAME = "company-sync";
+export { SYNC_QUEUE_NAME };
 
 export interface SyncCompanyJobData {
   companyId: string;

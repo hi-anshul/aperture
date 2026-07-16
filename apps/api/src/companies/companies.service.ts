@@ -2,12 +2,14 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { detectAndPersistPlatform } from "@aperture/connectors";
 import { prisma } from "@aperture/db";
 import type { PlatformType } from "@aperture/shared";
 import { deriveCompanyNameFromUrl } from "./derive-company-name";
 import type { CreateCompanyDto } from "./dto/create-company.dto";
+import { enqueueCompanySync } from "./sync-queue";
 
 function normalizeCareersUrl(careersUrl: string): string {
   const url = new URL(careersUrl.trim());
@@ -164,5 +166,73 @@ export class CompaniesService {
     }
 
     return mapCompany(refreshed);
+  }
+
+  /**
+   * Enqueues an async company sync. Never runs fetch/parse on the request path.
+   */
+  async syncCompany(companyId: string) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException("Company not found");
+    }
+
+    try {
+      await enqueueCompanySync(company.id);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to enqueue sync";
+      if (message.includes("REDIS_URL")) {
+        throw new ServiceUnavailableException(message);
+      }
+      throw error;
+    }
+
+    return {
+      companyId: company.id,
+      status: "queued" as const,
+    };
+  }
+
+  /**
+   * Removes a company and its related tracking data (jobs, sources, sync
+   * history, watchlists). Saved-job rows for that company's postings are
+   * deleted first to satisfy FK constraints.
+   */
+  async deleteCompany(companyId: string) {
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true },
+    });
+
+    if (!company) {
+      throw new NotFoundException("Company not found");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const jobs = await tx.job.findMany({
+        where: { companyId },
+        select: { id: true },
+      });
+      const jobIds = jobs.map((job) => job.id);
+
+      if (jobIds.length > 0) {
+        await tx.savedJob.deleteMany({
+          where: { jobId: { in: jobIds } },
+        });
+      }
+
+      await tx.job.deleteMany({ where: { companyId } });
+      await tx.jobSource.deleteMany({ where: { companyId } });
+      await tx.syncHistory.deleteMany({ where: { companyId } });
+      await tx.watchlist.deleteMany({ where: { companyId } });
+      await tx.company.delete({ where: { id: companyId } });
+    });
+
+    return { ok: true };
   }
 }

@@ -84,6 +84,9 @@ export interface JobRescoreResponse {
 export interface JobsListResponse {
   jobs: JobListItem[];
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export interface CompanySyncSummary {
@@ -158,4 +161,17 @@ export type NotificationChannel = "email" | "push" | "telegram";
 export interface SettingsResponse {
   notificationChannel: NotificationChannel;
   matchScoreThreshold: number;
+}
+
+export type AnalyticsWindowDays = 7 | 30;
+
+export interface AnalyticsResponse {
+  windowDays: AnalyticsWindowDays;
+  windowStart: string;
+  windowEnd: string;
+  jobsFound: number;
+  applied: number;
+  ignored: number;
+  companiesHiring: number;
+  averageMatchScore: number | null;
 }

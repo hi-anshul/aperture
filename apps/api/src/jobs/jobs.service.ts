@@ -68,16 +68,41 @@ export class JobsService {
       throw new UnauthorizedException("Authentication required");
     }
 
-    const { q, ...filters } = query;
+    const { q, page, limit, ...filters } = query;
     const searchConstraint = q
       ? await this.searchProvider.buildSearchConstraint(q)
       : undefined;
     const where = await buildJobWhereClause({ filters, searchConstraint });
+    const skip = (page - 1) * limit;
 
-    const [jobs, watchlistedCompanyIds, savedJobs] = await Promise.all([
+    const [jobs, total, watchlistedCompanyIds, savedJobs] = await Promise.all([
       prisma.job.findMany({
         where,
-        include: {
+        select: {
+          id: true,
+          externalId: true,
+          title: true,
+          location: true,
+          workMode: true,
+          country: true,
+          employmentType: true,
+          salaryMin: true,
+          salaryMax: true,
+          salaryCurrency: true,
+          visaSponsorship: true,
+          tags: true,
+          sourceUrl: true,
+          sourcePlatform: true,
+          postedAt: true,
+          firstSeenAt: true,
+          lastSeenAt: true,
+          companyId: true,
+          matchScore: true,
+          matchVerdict: true,
+          matchMissingSkills: true,
+          matchExplanation: true,
+          matchedResumeId: true,
+          matchedAt: true,
           company: {
             select: {
               id: true,
@@ -87,7 +112,10 @@ export class JobsService {
           },
         },
         orderBy: [{ postedAt: "desc" }, { firstSeenAt: "desc" }],
+        skip,
+        take: limit,
       }),
+      prisma.job.count({ where }),
       prisma.watchlist.findMany({
         where: { userId },
         select: { companyId: true },
@@ -104,6 +132,8 @@ export class JobsService {
     const savedByJobId = new Map(
       savedJobs.map((entry) => [entry.jobId, entry]),
     );
+
+    const totalPages = total === 0 ? 0 : Math.ceil(total / limit);
 
     return {
       jobs: jobs.map((job) => {
@@ -137,7 +167,10 @@ export class JobsService {
           ...mapMatchFields(job),
         };
       }),
-      total: jobs.length,
+      total,
+      page,
+      pageSize: limit,
+      totalPages,
     };
   }
 

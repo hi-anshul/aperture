@@ -23,6 +23,6 @@ Show summary metrics: jobs found, applied, ignored, companies hiring, average ma
 - "Ignored" = jobs seen but never saved; define this precisely and document it in `aperture-spec.md` if the definition isn't obvious from the schema alone
 
 ## Acceptance Criteria
-- [ ] Dashboard summary cards show real, correct counts
-- [ ] Average match score is computed only over scored jobs, not all jobs
-- [ ] Changing the time window updates all metrics consistently
+- [x] Dashboard summary cards show real, correct counts
+- [x] Average match score is computed only over scored jobs, not all jobs
+- [x] Changing the time window updates all metrics consistently

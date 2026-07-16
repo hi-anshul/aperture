@@ -1,27 +1,5 @@
-import type { JobListItem } from "@/lib/api/types";
-import { isWithinDays } from "@/lib/format";
-
-export interface DashboardStats {
-  jobsFoundThisWeek: number;
-  highMatches: string;
-  companiesHiring: number;
-  avgMatchScore: string;
-}
-
-export function computeDashboardStats(jobs: JobListItem[]): DashboardStats {
-  const jobsFoundThisWeek = jobs.filter((job) =>
-    isWithinDays(job.firstSeenAt, 7),
-  ).length;
-
-  const companiesHiring = new Set(jobs.map((job) => job.company.id)).size;
-
-  return {
-    jobsFoundThisWeek,
-    highMatches: "—",
-    companiesHiring,
-    avgMatchScore: "—",
-  };
-}
+import type { AnalyticsResponse, JobListItem } from "@/lib/api/types";
+import { WindowSelector } from "./window-selector";
 
 interface SummaryCardProps {
   label: string;
@@ -45,30 +23,59 @@ function SummaryCard({ label, value, hint }: SummaryCardProps) {
   );
 }
 
-export function SummaryCards({ stats }: { stats: DashboardStats }) {
+function formatAverageMatch(score: number | null): string {
+  if (score == null) {
+    return "—";
+  }
+
+  return Number.isInteger(score) ? String(score) : score.toFixed(1);
+}
+
+export function SummaryCards({ analytics }: { analytics: AnalyticsResponse }) {
+  const windowLabel =
+    analytics.windowDays === 7 ? "last 7 days" : "last 30 days";
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <SummaryCard
-        label="Jobs found this week"
-        value={stats.jobsFoundThisWeek}
-        hint="New postings in the last 7 days"
-      />
-      <SummaryCard
-        label="High matches"
-        value={stats.highMatches}
-        hint="Full analytics in Phase 20"
-      />
-      <SummaryCard
-        label="Companies hiring"
-        value={stats.companiesHiring}
-        hint="Active companies with open roles"
-      />
-      <SummaryCard
-        label="Avg match score"
-        value={stats.avgMatchScore}
-        hint="AI matching in Phase 17"
-      />
-    </div>
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-[var(--text-muted)]">
+          Metrics for jobs first seen in the {windowLabel}
+        </p>
+        <WindowSelector windowDays={analytics.windowDays} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <SummaryCard
+          label="Jobs found"
+          value={analytics.jobsFound}
+          hint={`New postings in the ${windowLabel}`}
+        />
+        <SummaryCard
+          label="Applied"
+          value={analytics.applied}
+          hint="Saved with Applied status"
+        />
+        <SummaryCard
+          label="Ignored"
+          value={analytics.ignored}
+          hint="Seen but never saved"
+        />
+        <SummaryCard
+          label="Companies hiring"
+          value={analytics.companiesHiring}
+          hint="Active companies with open roles"
+        />
+        <SummaryCard
+          label="Avg match score"
+          value={formatAverageMatch(analytics.averageMatchScore)}
+          hint={
+            analytics.averageMatchScore == null
+              ? "No scored jobs in this window"
+              : "Average over scored jobs only"
+          }
+        />
+      </div>
+    </section>
   );
 }
 

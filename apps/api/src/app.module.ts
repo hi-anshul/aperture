@@ -7,6 +7,7 @@ import { SavedJobsModule } from "./saved-jobs/saved-jobs.module";
 import { ResumesModule } from "./resumes/resumes.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { SettingsModule } from "./settings/settings.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -19,6 +20,7 @@ import { HealthController } from "./health.controller";
     ResumesModule,
     NotificationsModule,
     SettingsModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })

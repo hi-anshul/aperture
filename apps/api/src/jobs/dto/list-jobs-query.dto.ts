@@ -1,8 +1,14 @@
 import type { EmploymentType, WorkMode } from "@aperture/shared";
 import type { JobFilters } from "../filters/job-filters";
 
+export const DEFAULT_JOBS_PAGE = 1;
+export const DEFAULT_JOBS_PAGE_SIZE = 20;
+export const MAX_JOBS_PAGE_SIZE = 50;
+
 export interface ListJobsQuery extends JobFilters {
   q?: string;
+  page: number;
+  limit: number;
 }
 
 const WORK_MODES = new Set<WorkMode>(["remote", "hybrid", "onsite"]);
@@ -52,6 +58,27 @@ function parseOptionalNumber(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function parsePositiveInt(
+  value: string | undefined,
+  fallback: number,
+  max?: number,
+): number {
+  if (value === undefined || value.trim() === "") {
+    return fallback;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  if (max !== undefined && parsed > max) {
+    return max;
+  }
+
+  return parsed;
+}
+
 export function parseListJobsQuery(
   raw: Record<string, string | string[] | undefined>,
 ): ListJobsQuery {
@@ -60,6 +87,12 @@ export function parseListJobsQuery(
 
   return {
     q: readQueryValue(raw, "q")?.trim() || undefined,
+    page: parsePositiveInt(readQueryValue(raw, "page"), DEFAULT_JOBS_PAGE),
+    limit: parsePositiveInt(
+      readQueryValue(raw, "limit"),
+      DEFAULT_JOBS_PAGE_SIZE,
+      MAX_JOBS_PAGE_SIZE,
+    ),
     workMode:
       workMode && WORK_MODES.has(workMode as WorkMode)
         ? (workMode as WorkMode)

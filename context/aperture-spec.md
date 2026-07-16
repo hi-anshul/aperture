@@ -181,7 +181,9 @@ aperture/
 │   │       ├── watchlists/
 │   │       ├── saved-jobs/
 │   │       ├── resumes/
-│   │       └── notifications/
+│   │       ├── notifications/
+│   │       ├── settings/
+│   │       └── analytics/
 │   └── worker/                       -- scheduler + pipeline + AI jobs
 │       └── src/
 │           ├── scheduler/
@@ -382,8 +384,9 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 ## 11. Key UI Screens
 
 ### 11.1 Dashboard (`/dashboard`)
-- Summary cards: jobs found this week, high matches, companies hiring, average match score
-- Recent activity feed (new postings, removed postings)
+- Summary cards from `GET /api/analytics`: jobs found, applied, ignored, companies hiring, average match score
+- Time window control (last 7 / 30 days) — changing the window refreshes all cards consistently
+- Recent activity feed (new postings)
 
 ### 11.2 Jobs (`/jobs`)
 - Filterable, sortable list: remote/hybrid/onsite, country, experience, salary, platform, visa sponsorship, employment type
@@ -393,6 +396,8 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 ### 11.3 Companies (`/companies`)
 - All tracked companies with platform badge, last sync time, last sync status
 - "Add company" — paste a careers URL, platform is auto-detected
+- Per-row Sync now (enqueues the same `sync-company` BullMQ job as the scheduler)
+- Per-row Remove (deletes the company and its jobs/sync history/watchlist rows)
 
 ### 11.4 Watchlist (`/watchlist`)
 - Starred companies get checked every sync cycle regardless of global filters
@@ -421,8 +426,9 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 | POST | `/api/auth/login` | Session login |
 | GET | `/api/companies` | List tracked companies |
 | POST | `/api/companies` | Add a company (triggers platform detection) |
+| POST | `/api/companies/:id/sync` | Enqueue on-demand company sync (async worker job) |
 | DELETE | `/api/companies/:id` | Remove a company |
-| GET | `/api/jobs` | List jobs (filters as query params) |
+| GET | `/api/jobs` | List jobs (filters + `q` search; `page`/`limit`, default 20) |
 | GET | `/api/jobs/:id` | Job detail incl. AI summary + match score |
 | POST | `/api/jobs/:id/rescore` | Enqueue on-demand AI re-score (async worker job) |
 | POST | `/api/watchlists` | Add company to watchlist |
@@ -432,7 +438,21 @@ Long job descriptions are compressed into: Role, Requirements, Responsibilities,
 | POST | `/api/resumes` | Upload resume, triggers extraction |
 | GET | `/api/settings` | Notification channel + match-score threshold |
 | PATCH | `/api/settings` | Update notification channel + match-score threshold |
-| GET | `/api/analytics` | Jobs found, applied, ignored, companies hiring, avg match |
+| GET | `/api/analytics` | Jobs found, applied, ignored, companies hiring, avg match (`?windowDays=7\|30`) |
+
+### Analytics metrics (`GET /api/analytics`)
+
+All counts share one time window keyed on `jobs.firstSeenAt` (inclusive of soft-deleted rows so historical analytics stay accurate). Query param `windowDays` accepts `7` (default) or `30`.
+
+| Metric | Definition |
+|---|---|
+| `jobsFound` | Jobs with `firstSeenAt` in the window |
+| `applied` | Jobs in that set with a `saved_jobs` row for the user where `status = 'applied'` |
+| `ignored` | Jobs in that set with **no** `saved_jobs` row for the user (seen but never saved — includes neither Interested nor Rejected) |
+| `companiesHiring` | Distinct `company_id` among jobs in the window with `is_active = true` |
+| `averageMatchScore` | `AVG(matchScore)` over jobs in the window where `matchScore IS NOT NULL`; `null` when no scored jobs |
+
+Jobs saved as `interested` or `rejected` count toward neither `applied` nor `ignored`.
 
 The worker exposes no public HTTP routes — it only reads/writes the database and pushes to the notification channel directly.
 

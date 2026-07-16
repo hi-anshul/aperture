@@ -16,6 +16,8 @@ describe("parseListJobsQuery", () => {
       }),
     ).toEqual({
       q: "stripe",
+      page: 1,
+      limit: 20,
       workMode: "remote",
       country: "United States",
       platform: "greenhouse",
@@ -36,6 +38,8 @@ describe("parseListJobsQuery", () => {
       }),
     ).toEqual({
       q: undefined,
+      page: 1,
+      limit: 20,
       workMode: undefined,
       country: undefined,
       platform: undefined,
@@ -43,6 +47,17 @@ describe("parseListJobsQuery", () => {
       employmentType: undefined,
       salaryMin: undefined,
       salaryMax: undefined,
+    });
+  });
+
+  it("parses page and limit with defaults and caps", () => {
+    expect(parseListJobsQuery({ page: "3", limit: "10" })).toMatchObject({
+      page: 3,
+      limit: 10,
+    });
+    expect(parseListJobsQuery({ page: "0", limit: "999" })).toMatchObject({
+      page: 1,
+      limit: 50,
     });
   });
 });

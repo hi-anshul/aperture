@@ -77,7 +77,7 @@ Use `shadcn/ui` on top of Tailwind CSS.
 
 ## Layout Patterns
 
-* Jobs layout: left filter sidebar, center scrollable job list, right detail panel (opens on row click)
+* Jobs layout: sticky left filter sidebar, center scrollable job list with name search + pagination (20/page), right detail panel (opens on row click)
 * Dashboard layout: top navigation with summary cards + recent activity feed below
 * Sidebars: fixed-width dark panels with subtle border separators
 * Modals: centered overlay with backdrop blur and elevated surface

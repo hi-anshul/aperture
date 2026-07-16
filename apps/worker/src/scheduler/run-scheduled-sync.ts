@@ -1,6 +1,5 @@
 import type { Queue } from "bullmq";
-
-import { SYNC_JOB_NAME } from "./config";
+import { SYNC_JOB_NAME } from "@aperture/shared";
 
 export interface CompanyRef {
   id: string;
@@ -12,7 +11,7 @@ export interface CompanyStore {
 
 /**
  * Enqueues one `sync-company` job for a single company.
- * Used by the recurring scheduler and future manual "sync now" triggers.
+ * Used by the recurring scheduler and manual "sync now" triggers.
  */
 export async function enqueueCompanySync(
   queue: Queue,

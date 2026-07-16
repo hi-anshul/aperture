@@ -9,8 +9,9 @@ import type { ExistingJobForDiff } from "./types";
 describe("applyJobChanges", () => {
   it("writes deduped jobs and soft-deletes removed postings", async () => {
     const create = vi.fn().mockResolvedValue({ id: "job-new" });
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
     const update = vi.fn().mockResolvedValue({ id: "job-existing" });
-    const client = { job: { create, update } };
+    const client = { job: { create, createMany, update } };
 
     const deduped: DedupedJob[] = [
       {
@@ -65,7 +66,7 @@ describe("applyJobChanges", () => {
     const result = await applyJobChanges(client, deduped, diff, existingJobs);
 
     expect(result).toEqual({ inserted: 1, updated: 0, deactivated: 1 });
-    expect(create).toHaveBeenCalledOnce();
+    expect(createMany).toHaveBeenCalledOnce();
     expect(update).toHaveBeenCalledWith({
       where: { id: "job-removed" },
       data: { isActive: false },
@@ -74,8 +75,9 @@ describe("applyJobChanges", () => {
 
   it("reactivates jobs that reappear after being removed", async () => {
     const create = vi.fn();
+    const createMany = vi.fn();
     const update = vi.fn().mockResolvedValue({ id: "job-1" });
-    const client = { job: { create, update } };
+    const client = { job: { create, createMany, update } };
 
     const deduped: DedupedJob[] = [
       {

@@ -2,9 +2,16 @@ import type { NormalizedJob } from "@aperture/shared";
 
 import type { DedupedJob } from "../dedupe-engine";
 
+/** Neon/Prisma interactive txs time out if Stripe-scale boards insert one row at a time. */
+const INSERT_BATCH_SIZE = 50;
+
 export interface JobWriteClient {
   job: {
     create(args: { data: JobCreateData }): Promise<{ id: string }>;
+    createMany(args: {
+      data: JobCreateData[];
+      skipDuplicates?: boolean;
+    }): Promise<{ count: number }>;
     update(args: {
       where: { id: string };
       data: Partial<JobUpdateData>;
@@ -82,6 +89,8 @@ export async function writeDedupedJobs(
   let updated = 0;
   let deactivated = 0;
 
+  const insertPayload: JobCreateData[] = [];
+
   for (const entry of deduped) {
     if (entry.action === "deactivate") {
       await client.job.update({
@@ -93,8 +102,7 @@ export async function writeDedupedJobs(
     }
 
     if (entry.action === "insert") {
-      await client.job.create({ data: toCreateData(entry.job) });
-      inserted += 1;
+      insertPayload.push(toCreateData(entry.job));
       continue;
     }
 
@@ -103,6 +111,12 @@ export async function writeDedupedJobs(
       data: toUpdateData(entry.job),
     });
     updated += 1;
+  }
+
+  for (let offset = 0; offset < insertPayload.length; offset += INSERT_BATCH_SIZE) {
+    const batch = insertPayload.slice(offset, offset + INSERT_BATCH_SIZE);
+    await client.job.createMany({ data: batch, skipDuplicates: true });
+    inserted += batch.length;
   }
 
   return { inserted, updated, deactivated };

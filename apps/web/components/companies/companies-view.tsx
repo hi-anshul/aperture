@@ -32,6 +32,20 @@ export function CompaniesView({ initialCompanies }: CompaniesViewProps) {
     );
   }
 
+  function handleCompanyRemoved(companyId: string) {
+    setCompanies((current) =>
+      current.filter((company) => company.id !== companyId),
+    );
+  }
+
+  function handleCompanyUpdated(updated: CompanyListItem) {
+    setCompanies((current) =>
+      current.map((company) =>
+        company.id === updated.id ? updated : company,
+      ),
+    );
+  }
+
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-8">
       <div className="flex flex-col gap-1">
@@ -68,6 +82,8 @@ export function CompaniesView({ initialCompanies }: CompaniesViewProps) {
                 key={company.id}
                 company={company}
                 onWatchlistChange={handleWatchlistChange}
+                onRemoved={handleCompanyRemoved}
+                onCompanyUpdated={handleCompanyUpdated}
               />
             ))}
           </div>

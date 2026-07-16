@@ -73,8 +73,8 @@ export function FilterSidebar() {
   });
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border-default)] bg-[var(--bg-elevated)] lg:flex">
-      <div className="flex items-center justify-between border-b border-[var(--border-default)] px-4 py-4">
+    <aside className="hidden h-full min-h-0 w-60 shrink-0 flex-col overflow-hidden border-r border-[var(--border-default)] bg-[var(--bg-elevated)] lg:flex">
+      <div className="flex shrink-0 items-center justify-between border-b border-[var(--border-default)] px-4 py-4">
         <div>
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             Filters

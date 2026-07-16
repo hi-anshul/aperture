@@ -33,8 +33,9 @@ function buildJob(overrides: Partial<NormalizedJob> = {}): NormalizedJob {
 describe("writeDedupedJobs", () => {
   it("creates inserts and updates existing rows", async () => {
     const create = vi.fn().mockResolvedValue({ id: "job-new" });
+    const createMany = vi.fn().mockResolvedValue({ count: 1 });
     const update = vi.fn().mockResolvedValue({ id: "job-existing" });
-    const client = { job: { create, update } };
+    const client = { job: { create, createMany, update } };
 
     const result = await writeDedupedJobs(client, [
       { action: "insert", job: buildJob({ id: "job-new" }) },
@@ -42,7 +43,38 @@ describe("writeDedupedJobs", () => {
     ]);
 
     expect(result).toEqual({ inserted: 1, updated: 1, deactivated: 0 });
-    expect(create).toHaveBeenCalledOnce();
+    expect(createMany).toHaveBeenCalledOnce();
+    expect(createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ id: "job-new" })],
+      skipDuplicates: true,
+    });
     expect(update).toHaveBeenCalledOnce();
+  });
+
+  it("batches large insert sets with createMany", async () => {
+    const createMany = vi.fn().mockResolvedValue({ count: 50 });
+    const update = vi.fn();
+    const client = {
+      job: {
+        create: vi.fn(),
+        createMany,
+        update,
+      },
+    };
+
+    const inserts = Array.from({ length: 55 }, (_, index) => ({
+      action: "insert" as const,
+      job: buildJob({
+        id: `job-${index}`,
+        externalId: `ext-${index}`,
+      }),
+    }));
+
+    const result = await writeDedupedJobs(client, inserts);
+
+    expect(result.inserted).toBe(55);
+    expect(createMany).toHaveBeenCalledTimes(2);
+    expect(createMany.mock.calls[0]?.[0].data).toHaveLength(50);
+    expect(createMany.mock.calls[1]?.[0].data).toHaveLength(5);
   });
 });

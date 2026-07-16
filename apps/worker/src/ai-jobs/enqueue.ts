@@ -27,7 +27,7 @@ export async function enqueueMatchJobsForDiff(
       AI_MATCH_JOB_NAME,
       { jobId: job.id },
       {
-        jobId: `match:${job.id}`,
+        jobId: `match-${job.id}`,
         removeOnComplete: 100,
         removeOnFail: 50,
         attempts: 3,
@@ -46,7 +46,7 @@ export async function enqueueMatchJob(
   data: MatchJobQueueData,
 ): Promise<void> {
   await queue.add(AI_MATCH_JOB_NAME, data, {
-    jobId: `match:${data.jobId}:${Date.now()}`,
+    jobId: `match-${data.jobId}-${Date.now()}`,
     removeOnComplete: 100,
     removeOnFail: 50,
     attempts: 3,

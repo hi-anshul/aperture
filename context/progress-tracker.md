@@ -24,10 +24,11 @@ Update this file after every meaningful implementation change.
 - Phase 17: AI Matching — Completed
 - Phase 18: Notifications — Completed
 - Phase 19: Saved Jobs — Completed
+- Phase 20: Analytics — Completed
 
 ## Current Goal
 
-- Phase 20: Analytics (`features/20-analytics.md`)
+- Phase 21: AI Summary (`features/21-ai-summary.md`)
 
 ## Completed
 
@@ -219,13 +220,20 @@ Update this file after every meaningful implementation change.
   - Save action on job list rows (bookmark) and job detail panel (Save + status selector); new saves land in Interested.
   - DTO validation tests (4) in `create-saved-job.dto.test.ts`; `pnpm --filter @aperture/api test -- src/saved-jobs`, `pnpm --filter @aperture/api build`, and `pnpm --filter @aperture/web build` pass.
 
+- **Phase 20: Analytics**
+  - `GET /api/analytics?windowDays=7|30` in `apps/api/src/analytics/` — aggregate metrics keyed on `jobs.firstSeenAt` (includes soft-deleted rows).
+  - Metrics: `jobsFound`, `applied` (saved status applied), `ignored` (no `saved_jobs` row for user), `companiesHiring` (distinct active companies), `averageMatchScore` (AVG over scored jobs only; null when none).
+  - Dashboard summary cards wired to real analytics data; 7/30-day window selector updates all cards via `?windowDays=`.
+  - Metric definitions documented in `aperture-spec.md` §12; "ignored" = seen but never saved.
+  - Query-parse tests (3) in `analytics-query.dto.test.ts`; `pnpm --filter @aperture/api test -- src/analytics`, `pnpm --filter @aperture/api build`, and `pnpm --filter @aperture/web build` pass.
+
 ## In Progress
 
 - None.
 
 ## Next Up
 
-- Phase 20: Analytics (`features/20-analytics.md`)
+- Phase 21: AI Summary (`features/21-ai-summary.md`)
 - Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` for live Telegram delivery.
 - Add Upstash `REDIS_URL` (TLS `rediss://` URL) to `.env` before running the worker.
 - Set `ANTHROPIC_API_KEY` in `.env` before uploading resumes or scoring matches (required for Claude).
@@ -250,6 +258,7 @@ Update this file after every meaningful implementation change.
 - Resume PDF storage for MVP is a local volume (`RESUME_UPLOAD_DIR`); structured fields live in Postgres. One active resume per user: re-upload replaces prior rows.
 - AI match results live on the `jobs` row (not a separate table) for MVP single-user scoring; `matchedResumeId` records which resume produced the score. Re-score is always async via BullMQ.
 - Notification prefs live on `users` (channel + match threshold) rather than a separate settings table for MVP; Telegram credentials remain env-only.
+- Analytics window filters on `jobs.firstSeenAt`; "ignored" means no `saved_jobs` row for the user (Interested/Rejected are neither applied nor ignored). Average match excludes null `matchScore` rows.
 
 ## Session Notes
 
@@ -272,6 +281,11 @@ Update this file after every meaningful implementation change.
 - Executed Phase 17 from `17-ai-matching.md`: AI matching live. Set `ANTHROPIC_API_KEY` and `REDIS_URL`, run the worker so `ai-match` jobs process. Re-score via job detail panel or `POST /api/jobs/:id/rescore`. Migration `20260709120000_add_job_match_fields` applied to Neon. If `prisma generate` hits EPERM on Windows, stop `pnpm dev` first.
 - Executed Phase 18 from `18-notifications.md`: Notifications live. Set `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` (and `REDIS_URL`) for delivery. Configure channel/threshold on `/settings`. Migration `20260709140000_add_user_notification_prefs` applied to Neon. Run `pnpm --filter @aperture/worker test -- src/notifications` for fixture tests.
 - Executed Phase 19 from `19-saved-jobs.md`: Saved jobs API + kanban live. Save from Jobs list/detail (defaults to Interested); drag cards on `/saved` to update status via optimistic Zustand + PATCH. Unique `(userId, jobId)` enforced. Run `pnpm --filter @aperture/api test -- src/saved-jobs` and `pnpm --filter @aperture/web build` to verify.
+- Executed Phase 20 from `20-analytics.md`: `GET /api/analytics` + dashboard cards live. Toggle 7/30 days on `/dashboard?windowDays=`. Run `pnpm --filter @aperture/api test -- src/analytics` and `pnpm --filter @aperture/web build` to verify.
 - `@aperture/db` and `@aperture/shared` now compile to `dist/` (required for Node 24 runtime resolution of workspace packages from `apps/api`). `@aperture/ai` also compiles to `dist/` for the same reason.
 - Hardening pass: `listJobs` rejects missing `userId`; job-list keeps stale results on refetch failure; Greenhouse embed `?for=` name derivation; watchlist create maps only Prisma `P2002` to conflict; company/watchlist row actions surface toggle failures.
 - Job detail re-score polling ignores in-flight results after the selected job changes (`activeJobIdRef` guard). Default Claude model for match + resume extraction updated from retired `claude-sonnet-4-20250514` to `claude-sonnet-5` (`options.model` override unchanged).
+- Companies page: per-row Sync now (`POST /api/companies/:id/sync` enqueues the shared `sync-company` BullMQ job) and Remove (`DELETE /api/companies/:id` cascades jobs/sources/sync history/watchlists/saved-jobs). Sync queue constants live in `@aperture/shared`.
+- Sync write path: batch `createMany` inserts (50/row) and raise interactive transaction timeout so large Greenhouse boards (e.g. Stripe) no longer fail with Prisma P2028.
+- BullMQ custom job IDs no longer use `:` (invalid); sync handoff errors no longer mark an otherwise-successful sync as failed. `GET /api/jobs` omits `description` so Stripe-scale boards stay fast.
+- Jobs page: name search (`q`), sticky filter sidebar, and server-side pagination (`page`/`limit`, default 20). Response includes `page`, `pageSize`, `totalPages`.

@@ -118,7 +118,7 @@ export async function enqueueWatchlistNotificationsForDiff(
       };
 
       await enqueueNotifyJob(queue, data, {
-        jobId: `notify:dream-company:${userId}:${job.id}`,
+        jobId: `notify-dream-company-${userId}-${job.id}`,
       });
       enqueued += 1;
     }
@@ -223,7 +223,7 @@ export async function enqueueHighMatchNotification(
   };
 
   await enqueueNotifyJob(queue, data, {
-    jobId: `notify:high-match:${user.id}:${job.id}`,
+    jobId: `notify-high-match-${user.id}-${job.id}`,
   });
 
   return true;
