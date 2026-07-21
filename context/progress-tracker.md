@@ -84,8 +84,9 @@ Update this file after every meaningful implementation change.
   - `Connector` interface and `ConnectorRegistry` in `packages/connectors/src/connector.ts` match `aperture-spec.md` §6.
   - `RawJob` and `Company` types confirmed in `packages/shared/src/types.ts`.
   - Greenhouse connector (`packages/connectors/src/greenhouse/`): `canHandle()` for `*.greenhouse.io` URLs, `fetch()` via `boards-api.greenhouse.io/v1/boards/{token}/jobs`, maps API JSON to `RawJob[]`.
-  - `createDefaultRegistry()` in `packages/connectors/src/registry.ts` registers Greenhouse; `resolve()` picks it for Greenhouse careers URLs.
-  - Fixture-based unit tests (14 passing) in `greenhouse.connector.test.ts` — no live network required for CI.
+  - Workday connector (`packages/connectors/src/workday/`): `canHandle()` for `*.myworkdayjobs.com` URLs; `fetch()` via CXS `POST /wday/cxs/{tenant}/{site}/jobs` with pagination + detail hydration; recovers board from custom careers HTML (e.g. Adobe); worker parser/normalizer + sync platform fallback when URL isn't a myworkdayjobs host.
+  - `createDefaultRegistry()` in `packages/connectors/src/registry.ts` registers Greenhouse and Workday; `resolve()` picks them for matching careers URLs.
+  - Fixture-based unit tests (14 Greenhouse + 14 Workday passing) — no live network required for CI.
   - Live verification against Stripe's public board returned 496 valid `RawJob` records.
   - `pnpm --filter @aperture/connectors test` and `pnpm --filter @aperture/connectors build` pass.
 
@@ -266,6 +267,8 @@ Update this file after every meaningful implementation change.
 - Executed Phase 2 from `02-authentication.md`: login/logout/session guard live. Default seed user is `admin@example.com` (set `SEED_USER_PASSWORD` in `.env`). shadcn/ui init deferred to Phase 13 dashboard shell — login page uses design-token Tailwind directly.
 - Executed Phase 3 from `03-database.md`: indexes and FK gaps closed via `20260708053021_add_indexes_and_foreign_keys` migration. Re-run `pnpm db:generate` after stopping `pnpm dev` if Prisma client DLL is locked on Windows.
 - Executed Phase 4 from `04-connector-sdk.md`: Greenhouse connector live; registry resolves `boards.greenhouse.io/*` URLs. Run `pnpm --filter @aperture/connectors test` for fixture-based tests.
+- Workday connector live (`packages/connectors/src/workday/`): CXS list pagination + detail hydration, board extraction from `*.myworkdayjobs.com` URLs and custom careers HTML (e.g. Adobe), parser + normalizer wired in the worker, registry + sync platform fallback. Run `pnpm --filter @aperture/connectors test` and `pnpm --filter @aperture/worker test -- src/normalizer src/parser-engine`.
+- Company name derivation improved in `@aperture/shared` (`deriveCompanyNameFromUrl`): Workday tenant from `{tenant}.wdN.myworkdayjobs.com`, brand host preferred over generic `careers.`/`jobs.` subdomains; placeholder names like "Careers"/"Workday" are corrected on sync.
 - Executed Phase 5 from `05-platform-detector.md`: Platform Detector live in `packages/connectors`. Run `pnpm --filter @aperture/connectors test` for URL-pattern, content-inspection, and persistence tests.
 - Executed Phase 6 from `06-fetch-engine.md`: Fetch Engine live in `apps/worker/src/fetch-engine`. Run `pnpm --filter @aperture/worker test` for fixture-based tests. Playwright is a worker dependency — run `pnpm exec playwright install chromium` before using the browser fetch path in production.
 - Executed Phase 7 from `07-parser-engine.md`: Parser Engine live in `apps/worker/src/parser-engine`. Run `pnpm --filter @aperture/worker test` for Greenhouse fixture-based parser tests.

@@ -1,6 +1,7 @@
 import type { NormalizedJob, RawJob } from "@aperture/shared";
 
 import { normalizeGreenhouseJob } from "./greenhouse/greenhouse.normalizer";
+import { normalizeWorkdayJob } from "./workday/workday.normalizer";
 import type { NormalizeContext } from "./types";
 
 export class NormalizerEngine {
@@ -8,6 +9,8 @@ export class NormalizerEngine {
     switch (job.sourcePlatform) {
       case "greenhouse":
         return normalizeGreenhouseJob(job, context);
+      case "workday":
+        return normalizeWorkdayJob(job, context);
       default:
         throw new Error(
           `No normalizer registered for platform "${job.sourcePlatform}"`,

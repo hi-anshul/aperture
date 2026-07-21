@@ -7,10 +7,29 @@ import {
   ParserEngine,
   ParserError,
   parseGreenhouseContent,
+  parseWorkdayContent,
 } from "./index";
 
 const fixturePath = join(__dirname, "fixtures", "jobs-response.json");
 const fixtureContent = readFileSync(fixturePath, "utf-8");
+
+const workdayListFixture = JSON.stringify({
+  total: 2,
+  jobPostings: [
+    {
+      title: "Software Engineer",
+      externalPath: "/job/San-Jose/Software-Engineer_R100001",
+      locationsText: "San Jose, CA",
+      bulletFields: ["R100001"],
+    },
+    {
+      title: "Product Manager",
+      externalPath: "/job/Remote/Product-Manager_R100002",
+      locationsText: "Remote",
+      bulletFields: ["R100002"],
+    },
+  ],
+});
 
 describe("parseGreenhouseContent", () => {
   it("converts a real API response fixture into valid RawJob[]", () => {
@@ -108,6 +127,19 @@ describe("ParserEngine", () => {
     expect(jobs[0]?.sourcePlatform).toBe("greenhouse");
   });
 
+  it("routes workday platform requests to the Workday parser", () => {
+    const engine = new ParserEngine();
+    const jobs = engine.parse({
+      platform: "workday",
+      content: workdayListFixture,
+      sourceUrl: "https://example.wd5.myworkdayjobs.com/careers",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]?.sourcePlatform).toBe("workday");
+    expect(jobs[0]?.externalId).toBe("R100001");
+  });
+
   it("throws for unsupported platforms", () => {
     const engine = new ParserEngine();
 
@@ -125,8 +157,35 @@ describe("ParserEngine", () => {
     );
 
     parseGreenhouseContent(fixtureContent);
+    parseWorkdayContent(workdayListFixture, {
+      sourceUrl: "https://example.wd5.myworkdayjobs.com/careers",
+    });
 
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+});
+
+describe("parseWorkdayContent", () => {
+  it("converts a CXS list fixture into valid RawJob[]", () => {
+    const jobs = parseWorkdayContent(workdayListFixture, {
+      sourceUrl: "https://example.wd5.myworkdayjobs.com/careers",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      sourcePlatform: "workday",
+      externalId: "R100001",
+      sourceUrl:
+        "https://example.wd5.myworkdayjobs.com/careers/job/San-Jose/Software-Engineer_R100001",
+    });
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() => parseWorkdayContent("{not-json")).toThrow(ParserError);
+  });
+
+  it("throws when jobPostings is missing", () => {
+    expect(() => parseWorkdayContent('{"total":0}')).toThrow(ParserError);
   });
 });

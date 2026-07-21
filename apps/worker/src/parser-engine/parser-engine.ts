@@ -2,6 +2,7 @@ import type { RawJob } from "@aperture/shared";
 
 import { buildParserError } from "./errors";
 import { parseGreenhouseRequest } from "./greenhouse/greenhouse.parser";
+import { parseWorkdayRequest } from "./workday/workday.parser";
 import type { ParseRequest, ParseSuccess } from "./types";
 
 export class ParserEngine {
@@ -9,6 +10,8 @@ export class ParserEngine {
     switch (request.platform) {
       case "greenhouse":
         return parseGreenhouseRequest(request);
+      case "workday":
+        return parseWorkdayRequest(request);
       default:
         throw buildParserError({
           code: "UNSUPPORTED_PLATFORM",

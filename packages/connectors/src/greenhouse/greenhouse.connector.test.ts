@@ -161,6 +161,15 @@ describe("ConnectorRegistry", () => {
     expect(connector).toBeUndefined();
   });
 
+  it("resolve picks Workday connector for myworkdayjobs URLs", async () => {
+    const registry = createDefaultRegistry();
+    const connector = await registry.resolve(
+      "https://adobe.wd5.myworkdayjobs.com/external_experienced",
+    );
+
+    expect(connector?.platform).toBe("workday");
+  });
+
   it("manual registry registration works", async () => {
     const registry = new ConnectorRegistry();
     registry.register(new GreenhouseConnector());

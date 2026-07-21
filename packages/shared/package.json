@@ -9,5 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo \"no lint configured\""
   },
-  "devDependencies": { "typescript": "^5.5.4" }
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.5.4"
+  }
 }

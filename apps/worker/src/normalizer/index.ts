@@ -5,6 +5,9 @@ export {
 export {
   normalizeGreenhouseJob,
 } from "./greenhouse/greenhouse.normalizer";
+export {
+  normalizeWorkdayJob,
+} from "./workday/workday.normalizer";
 export type {
   NormalizeContext,
   NormalizeRequest,

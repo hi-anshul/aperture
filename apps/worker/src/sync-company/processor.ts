@@ -1,7 +1,14 @@
 import type { Company, PlatformType } from "@aperture/shared";
 import {
+  deriveCompanyNameFromUrl,
+  formatCompanyNameFromSlug,
+  isPlaceholderCompanyName,
+} from "@aperture/shared";
+import {
   createDefaultRegistry,
   detectAndPersistPlatform,
+  extractWorkdayBoard,
+  extractWorkdayBoardFromHtml,
   type PlatformPersistenceClient,
 } from "@aperture/connectors";
 
@@ -46,6 +53,10 @@ export interface SyncCompanyStore extends PlatformPersistenceClient, JobWriteCli
     findUnique(args: {
       where: { id: string };
     }): Promise<SyncCompanyRecord | null>;
+    update(args: {
+      where: { id: string };
+      data: { platform?: string; name?: string };
+    }): Promise<SyncCompanyRecord | { id: string; careersUrl: string; platform: string }>;
   };
   job: JobWriteClient["job"] & {
     findMany(args: {
@@ -171,8 +182,26 @@ export async function processSyncCompany(
     }
 
     const platform = await detectAndPersistPlatform(companyId, store);
+    let companyName = company.name;
+
+    if (isPlaceholderCompanyName(companyName)) {
+      const improved = await resolveImprovedCompanyName(
+        company.careersUrl,
+        platform,
+      );
+      if (improved && improved !== companyName) {
+        await store.company.update({
+          where: { id: companyId },
+          data: { name: improved },
+        });
+        companyName = improved;
+      }
+    }
+
     const registry = createDefaultRegistry();
-    const connector = await registry.resolve(company.careersUrl);
+    const connector =
+      (await registry.resolve(company.careersUrl)) ??
+      registry.list().find((entry) => entry.platform === platform);
 
     if (!connector) {
       throw new Error(
@@ -182,7 +211,7 @@ export async function processSyncCompany(
 
     const companyDto: Company = {
       id: company.id,
-      name: company.name,
+      name: companyName,
       careersUrl: company.careersUrl,
       platform,
       logoUrl: company.logoUrl,
@@ -228,7 +257,7 @@ export async function processSyncCompany(
     const dedupeEngine = createDedupeEngine();
     const deduped = dedupeEngine.dedupe(normalized, {
       companyId,
-      companyName: company.name,
+      companyName,
       syncedAt,
       existingJobs,
     });
@@ -329,4 +358,42 @@ export async function processSyncCompany(
 
     throw error;
   }
+}
+
+async function resolveImprovedCompanyName(
+  careersUrl: string,
+  platform: PlatformType,
+): Promise<string | null> {
+  const fromUrl = deriveCompanyNameFromUrl(careersUrl);
+  if (!isPlaceholderCompanyName(fromUrl)) {
+    return fromUrl;
+  }
+
+  if (platform !== "workday") {
+    return null;
+  }
+
+  const boardFromUrl = extractWorkdayBoard(careersUrl);
+  if (boardFromUrl) {
+    return formatCompanyNameFromSlug(boardFromUrl.tenant);
+  }
+
+  try {
+    const response = await fetch(careersUrl, {
+      headers: { Accept: "text/html,application/xhtml+xml" },
+    });
+    if (!response.ok) {
+      return null;
+    }
+
+    const html = await response.text();
+    const boardFromHtml = extractWorkdayBoardFromHtml(html);
+    if (boardFromHtml) {
+      return formatCompanyNameFromSlug(boardFromHtml.tenant);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }

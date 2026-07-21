@@ -51,7 +51,9 @@ export function createSyncWorker(
     },
     {
       connection,
-      concurrency: 5,
+      concurrency: 2,
+      // Workday boards can require hundreds of CXS detail requests.
+      lockDuration: 15 * 60 * 1000,
     },
   );
 

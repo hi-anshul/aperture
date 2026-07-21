@@ -7,10 +7,16 @@ import { describe, expect, it } from "vitest";
 import {
   NormalizerEngine,
   normalizeGreenhouseJob,
+  normalizeWorkdayJob,
 } from "./index";
 
 const fixturePath = join(__dirname, "fixtures", "greenhouse-raw-jobs.json");
 const fixtureJobs = JSON.parse(readFileSync(fixturePath, "utf-8")) as RawJob[];
+
+const workdayFixturePath = join(__dirname, "fixtures", "workday-raw-jobs.json");
+const workdayFixtureJobs = JSON.parse(
+  readFileSync(workdayFixturePath, "utf-8"),
+) as RawJob[];
 
 const syncedAt = new Date("2026-07-08T12:00:00.000Z");
 const companyId = "company-1";
@@ -122,6 +128,20 @@ describe("NormalizerEngine", () => {
     expect(normalized[1]?.workMode).toBe("remote");
   });
 
+  it("routes workday RawJob entries through the Workday normalizer", () => {
+    const engine = new NormalizerEngine();
+    const normalized = engine.normalizeMany(workdayFixtureJobs.slice(0, 2), {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]?.sourcePlatform).toBe("workday");
+    expect(normalized[0]?.title).toBe("Software Engineer");
+    expect(normalized[1]?.workMode).toBe("remote");
+    expect(normalized[1]?.employmentType).toBe("part-time");
+  });
+
   it("throws for unsupported platforms", () => {
     const engine = new NormalizerEngine();
 
@@ -136,5 +156,37 @@ describe("NormalizerEngine", () => {
         { companyId, syncedAt },
       ),
     ).toThrow('No normalizer registered for platform "lever"');
+  });
+});
+
+describe("normalizeWorkdayJob", () => {
+  it("maps a Workday RawJob fixture into a NormalizedJob", () => {
+    const normalized = normalizeWorkdayJob(workdayFixtureJobs[0]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.externalId).toBe("R100001");
+    expect(normalized.sourcePlatform).toBe("workday");
+    expect(normalized.title).toBe("Software Engineer");
+    expect(normalized.description).toBe(
+      "<p>Build reliable systems for our core platform.</p>",
+    );
+    expect(normalized.location).toBe("San Jose");
+    expect(normalized.country).toBe("United States of America");
+    expect(normalized.employmentType).toBe("full-time");
+    expect(normalized.postedAt).toEqual(new Date("2026-07-10"));
+  });
+
+  it("handles missing optional Workday fields gracefully", () => {
+    const normalized = normalizeWorkdayJob(workdayFixtureJobs[2]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.title).toBe("Untitled role");
+    expect(normalized.description).toBe("");
+    expect(normalized.location).toBeNull();
+    expect(normalized.employmentType).toBeNull();
   });
 });

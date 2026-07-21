@@ -16,7 +16,7 @@ export interface PlatformPersistenceClient {
     }): Promise<CompanyPlatformRecord | null>;
     update(args: {
       where: { id: string };
-      data: { platform: string };
+      data: { platform?: string; name?: string };
     }): Promise<CompanyPlatformRecord>;
   };
 }

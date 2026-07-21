@@ -1,0 +1,15 @@
+{
+  "jobPostingInfo": {
+    "id": "detail-id-100001",
+    "title": "Software Engineer",
+    "jobDescription": "<p>Build reliable systems for our core platform.</p>",
+    "location": "San Jose",
+    "country": "United States of America",
+    "timeType": "Full time",
+    "remoteType": "",
+    "jobReqId": "R100001",
+    "postedOn": "Posted 2 Days Ago",
+    "startDate": "2026-07-10",
+    "externalUrl": "https://example.wd5.myworkdayjobs.com/careers/job/San-Jose/Software-Engineer_R100001"
+  }
+}

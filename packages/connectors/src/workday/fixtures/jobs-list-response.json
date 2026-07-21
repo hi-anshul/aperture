@@ -1,0 +1,19 @@
+{
+  "total": 2,
+  "jobPostings": [
+    {
+      "title": "Software Engineer",
+      "externalPath": "/job/San-Jose/Software-Engineer_R100001",
+      "locationsText": "San Jose, CA",
+      "postedOn": "Posted 2 Days Ago",
+      "bulletFields": ["R100001"]
+    },
+    {
+      "title": "Product Manager",
+      "externalPath": "/job/Remote/Product-Manager_R100002",
+      "locationsText": "Remote",
+      "postedOn": "Posted Today",
+      "bulletFields": ["R100002"]
+    }
+  ]
+}
