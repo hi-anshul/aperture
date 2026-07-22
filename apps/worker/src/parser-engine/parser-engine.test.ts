@@ -6,7 +6,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ParserEngine,
   ParserError,
+  parseAshbyContent,
   parseGreenhouseContent,
+  parseHtmlContent,
+  parseLeverContent,
   parseWorkdayContent,
 } from "./index";
 
@@ -30,6 +33,20 @@ const workdayListFixture = JSON.stringify({
     },
   ],
 });
+
+const leverFixturePath = join(
+  __dirname,
+  "fixtures",
+  "lever-postings-response.json",
+);
+const leverFixtureContent = readFileSync(leverFixturePath, "utf-8");
+
+const ashbyFixturePath = join(
+  __dirname,
+  "fixtures",
+  "ashby-jobs-response.json",
+);
+const ashbyFixtureContent = readFileSync(ashbyFixturePath, "utf-8");
 
 describe("parseGreenhouseContent", () => {
   it("converts a real API response fixture into valid RawJob[]", () => {
@@ -140,12 +157,38 @@ describe("ParserEngine", () => {
     expect(jobs[0]?.externalId).toBe("R100001");
   });
 
+  it("routes lever platform requests to the Lever parser", () => {
+    const engine = new ParserEngine();
+    const jobs = engine.parse({
+      platform: "lever",
+      content: leverFixtureContent,
+      sourceUrl: "https://jobs.lever.co/example",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]?.sourcePlatform).toBe("lever");
+    expect(jobs[0]?.externalId).toBe("posting-1001");
+  });
+
+  it("routes ashby platform requests to the Ashby parser", () => {
+    const engine = new ParserEngine();
+    const jobs = engine.parse({
+      platform: "ashby",
+      content: ashbyFixtureContent,
+      sourceUrl: "https://jobs.ashbyhq.com/example",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]?.sourcePlatform).toBe("ashby");
+    expect(jobs[0]?.externalId).toBe("job-1001");
+  });
+
   it("throws for unsupported platforms", () => {
     const engine = new ParserEngine();
 
     expect(() =>
       engine.parse({
-        platform: "lever",
+        platform: "smartrecruiters",
         content: fixtureContent,
       }),
     ).toThrow(ParserError);
@@ -160,6 +203,8 @@ describe("ParserEngine", () => {
     parseWorkdayContent(workdayListFixture, {
       sourceUrl: "https://example.wd5.myworkdayjobs.com/careers",
     });
+    parseLeverContent(leverFixtureContent);
+    parseAshbyContent(ashbyFixtureContent);
 
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
@@ -187,5 +232,91 @@ describe("parseWorkdayContent", () => {
 
   it("throws when jobPostings is missing", () => {
     expect(() => parseWorkdayContent('{"total":0}')).toThrow(ParserError);
+  });
+});
+
+describe("parseLeverContent", () => {
+  it("converts a Lever postings fixture into valid RawJob[]", () => {
+    const jobs = parseLeverContent(leverFixtureContent, {
+      sourceUrl: "https://jobs.lever.co/example",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      sourcePlatform: "lever",
+      externalId: "posting-1001",
+      sourceUrl: "https://jobs.lever.co/example/posting-1001",
+    });
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() => parseLeverContent("{not-json")).toThrow(ParserError);
+  });
+
+  it("throws when response is not an array", () => {
+    expect(() => parseLeverContent('{"jobs":[]}')).toThrow(ParserError);
+  });
+});
+describe("parseAshbyContent", () => {
+  it("converts an Ashby job-board fixture into valid RawJob[]", () => {
+    const jobs = parseAshbyContent(ashbyFixtureContent, {
+      sourceUrl: "https://jobs.ashbyhq.com/example",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      sourcePlatform: "ashby",
+      externalId: "job-1001",
+      sourceUrl: "https://jobs.ashbyhq.com/example/job-1001",
+    });
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() => parseAshbyContent("{not-json")).toThrow(ParserError);
+  });
+
+  it("throws when jobs array is missing", () => {
+    expect(() => parseAshbyContent('{"apiVersion":"1"}')).toThrow(ParserError);
+  });
+});
+
+describe("parseHtmlContent", () => {
+  const staticHtmlFixture = `<!DOCTYPE html><html><body>
+    <ul class="job-list">
+      <li class="job-listing"><a href="/careers/swe">Software Engineer</a></li>
+      <li class="job-listing"><a href="/careers/pm">Product Manager</a></li>
+    </ul>
+  </body></html>`;
+
+  it("parses static-html listings", () => {
+    const jobs = parseHtmlContent(staticHtmlFixture, {
+      platform: "static-html",
+      sourceUrl: "https://careers.example.com/",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs[0]).toMatchObject({
+      sourcePlatform: "static-html",
+      sourceUrl: "https://careers.example.com/careers/swe",
+      externalId: "/careers/swe",
+    });
+  });
+
+  it("tags react-rendered platform on the same HTML shape", () => {
+    const jobs = parseHtmlContent(staticHtmlFixture, {
+      platform: "react-rendered",
+      sourceUrl: "https://jobs.example.com/",
+    });
+
+    expect(jobs).toHaveLength(2);
+    expect(jobs.every((job) => job.sourcePlatform === "react-rendered")).toBe(
+      true,
+    );
+  });
+
+  it("throws when sourceUrl is missing", () => {
+    expect(() =>
+      parseHtmlContent(staticHtmlFixture, { platform: "static-html" }),
+    ).toThrow(ParserError);
   });
 });

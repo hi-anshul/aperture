@@ -10,7 +10,11 @@
     "test": "vitest run",
     "lint": "echo \"no lint configured\""
   },
-  "dependencies": { "@aperture/shared": "workspace:*" },
+  "dependencies": {
+    "@aperture/shared": "workspace:*",
+    "cheerio": "^1.2.0",
+    "undici": "^8.8.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.5.4",

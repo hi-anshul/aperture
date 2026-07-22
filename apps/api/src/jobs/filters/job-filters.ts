@@ -20,6 +20,88 @@ const EMPLOYMENT_TYPES = new Set<EmploymentType>([
   "temporary",
 ]);
 
+/** Canonical search phrases keyed by normalized user input. */
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  us: ["United States", "United States of America", "USA"],
+  usa: ["United States", "United States of America", "USA"],
+  "u.s.": ["United States", "United States of America", "USA"],
+  "u.s.a.": ["United States", "United States of America", "USA"],
+  "united states": ["United States", "United States of America", "USA"],
+  "united states of america": [
+    "United States",
+    "United States of America",
+    "USA",
+  ],
+  uk: ["United Kingdom", "Great Britain", "UK"],
+  "u.k.": ["United Kingdom", "Great Britain", "UK"],
+  "united kingdom": ["United Kingdom", "Great Britain", "UK"],
+  "great britain": ["United Kingdom", "Great Britain", "UK"],
+};
+
+const US_LOCATION_PREFIXES = ["US -", "US-", "USA -", "USA-"] as const;
+
+export function buildCountryFilterConstraint(
+  country: string,
+): Prisma.JobWhereInput | undefined {
+  const term = country.trim();
+  if (!term) {
+    return undefined;
+  }
+
+  const normalized = term.toLowerCase();
+  const phrases = COUNTRY_ALIASES[normalized] ?? [term];
+  const conditions: Prisma.JobWhereInput[] = [];
+
+  for (const phrase of phrases) {
+    conditions.push(
+      { country: { contains: phrase, mode: "insensitive" } },
+      { location: { contains: phrase, mode: "insensitive" } },
+    );
+  }
+
+  // Short US codes must not use bare "contains: US" (matches "Australia").
+  if (
+    normalized === "us" ||
+    normalized === "usa" ||
+    normalized === "u.s." ||
+    normalized === "u.s.a." ||
+    normalized === "united states" ||
+    normalized === "united states of america"
+  ) {
+    conditions.push(
+      { country: { equals: "US", mode: "insensitive" } },
+      { country: { startsWith: "US-", mode: "insensitive" } },
+      { country: { startsWith: "US ", mode: "insensitive" } },
+      { country: { contains: " US", mode: "insensitive" } },
+      { country: { contains: "-US", mode: "insensitive" } },
+      { location: { equals: "US", mode: "insensitive" } },
+      ...US_LOCATION_PREFIXES.map(
+        (prefix): Prisma.JobWhereInput => ({
+          location: { startsWith: prefix, mode: "insensitive" },
+        }),
+      ),
+    );
+  }
+
+  if (
+    normalized === "uk" ||
+    normalized === "u.k." ||
+    normalized === "united kingdom" ||
+    normalized === "great britain"
+  ) {
+    conditions.push(
+      { country: { equals: "UK", mode: "insensitive" } },
+      { country: { equals: "GB", mode: "insensitive" } },
+      { location: { startsWith: "UK -", mode: "insensitive" } },
+      { location: { startsWith: "UK-", mode: "insensitive" } },
+      { location: { startsWith: "GB -", mode: "insensitive" } },
+      { location: { startsWith: "GB-", mode: "insensitive" } },
+    );
+  }
+
+  return { OR: conditions };
+}
+
 export function buildJobFilterConstraint(
   filters: JobFilters,
 ): Prisma.JobWhereInput | undefined {
@@ -29,10 +111,11 @@ export function buildJobFilterConstraint(
     conditions.push({ workMode: filters.workMode });
   }
 
-  if (filters.country?.trim()) {
-    conditions.push({
-      country: { equals: filters.country.trim(), mode: "insensitive" },
-    });
+  const countryConstraint = filters.country?.trim()
+    ? buildCountryFilterConstraint(filters.country)
+    : undefined;
+  if (countryConstraint) {
+    conditions.push(countryConstraint);
   }
 
   if (filters.platform?.trim()) {

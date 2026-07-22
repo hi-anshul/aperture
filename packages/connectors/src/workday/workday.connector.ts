@@ -1,4 +1,5 @@
 import type { Company, RawJob } from "@aperture/shared";
+import { Agent, fetch as undiciFetch } from "undici";
 
 import type { Connector } from "../connector";
 import {
@@ -20,16 +21,35 @@ import type {
 
 const WORKDAY_FETCH_TIMEOUT_MS = 30_000;
 const WORKDAY_PAGE_SIZE = 20;
-const WORKDAY_DETAIL_CONCURRENCY = 5;
+/** Keep low — large CXS detail bodies + high concurrency trip undici backpressure crashes on Node 24. */
+const WORKDAY_DETAIL_CONCURRENCY = 2;
+const WORKDAY_DETAIL_BATCH_GAP_MS = 50;
 const DEFAULT_USER_AGENT = "Aperture/1.0";
 
+/**
+ * Dedicated agent for Workday CXS calls.
+ * Userland undici ≥8.4.1 avoids Node 24's bundled undici AssertionError when a
+ * peer closes the socket while a large response body is paused under backpressure.
+ */
+const workdayAgent = new Agent({
+  connections: WORKDAY_DETAIL_CONCURRENCY,
+  pipelining: 0,
+  keepAliveTimeout: 10_000,
+  keepAliveMaxTimeout: 15_000,
+});
+
 export type FetchFn = typeof fetch;
+
+const defaultWorkdayFetch: FetchFn = ((input, init) =>
+  undiciFetch(input as string | URL, {
+    ...(init as Parameters<typeof undiciFetch>[1]),
+    dispatcher: workdayAgent,
+  })) as FetchFn;
 
 export class WorkdayConnector implements Connector {
   readonly platform = "workday";
 
-  constructor(private readonly fetchFn: FetchFn = fetch) {}
-
+  constructor(private readonly fetchFn: FetchFn = defaultWorkdayFetch) {}
   canHandle(careersUrl: string): boolean {
     return isWorkdayCareersUrl(careersUrl);
   }
@@ -119,6 +139,10 @@ export class WorkdayConnector implements Connector {
       .filter((path): path is string => Boolean(path));
 
     for (let i = 0; i < paths.length; i += WORKDAY_DETAIL_CONCURRENCY) {
+      if (i > 0) {
+        await sleep(WORKDAY_DETAIL_BATCH_GAP_MS);
+      }
+
       const batch = paths.slice(i, i + WORKDAY_DETAIL_CONCURRENCY);
       const results = await Promise.all(
         batch.map(async (externalPath) => {
@@ -162,12 +186,13 @@ export class WorkdayConnector implements Connector {
     });
 
     if (!response.ok) {
+      await drainResponseBody(response);
       throw new Error(
         `Workday CXS list request failed (${response.status}) for site "${board.site}"`,
       );
     }
 
-    return (await response.json()) as T;
+    return readJsonBody<T>(response);
   }
 
   private async getJson<T>(url: string, board: WorkdayBoard): Promise<T> {
@@ -182,12 +207,13 @@ export class WorkdayConnector implements Connector {
     });
 
     if (!response.ok) {
+      await drainResponseBody(response);
       throw new Error(
         `Workday CXS detail request failed (${response.status}) for ${url}`,
       );
     }
 
-    return (await response.json()) as T;
+    return readJsonBody<T>(response);
   }
 
   private async fetchText(
@@ -203,12 +229,13 @@ export class WorkdayConnector implements Connector {
     });
 
     if (!response.ok) {
+      await drainResponseBody(response);
       throw new Error(
         `Workday careers page request failed (${response.status}) for ${url}`,
       );
     }
 
-    return response.text();
+    return readTextBody(response);
   }
 
   private async fetchWithTimeout(
@@ -229,5 +256,46 @@ export class WorkdayConnector implements Connector {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Fully buffer the body before parsing. Leaving a large CXS payload unread (or
+ * only partially consumed) can pause undici's HTTP/1 parser; a peer FIN then
+ * crashes the worker with an uncatchable AssertionError on Node 24.
+ */
+async function readTextBody(response: Response): Promise<string> {
+  if (typeof response.arrayBuffer === "function") {
+    const buffer = await response.arrayBuffer();
+    return new TextDecoder().decode(buffer);
+  }
+
+  return response.text();
+}
+
+async function readJsonBody<T>(response: Response): Promise<T> {
+  if (typeof response.arrayBuffer === "function") {
+    const buffer = await response.arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buffer)) as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+async function drainResponseBody(response: Response): Promise<void> {
+  try {
+    if (typeof response.arrayBuffer === "function") {
+      await response.arrayBuffer();
+      return;
+    }
+    if (typeof response.text === "function") {
+      await response.text();
+    }
+  } catch {
+    // Best-effort drain — ignore secondary read failures.
   }
 }

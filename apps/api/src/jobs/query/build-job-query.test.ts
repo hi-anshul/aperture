@@ -12,7 +12,7 @@ describe("buildJobWhereClause", () => {
   it("combines search and filters with AND semantics instead of replacing filters", async () => {
     const searchConstraint = buildIlikeSearchConstraint("stripe");
     const where = await buildJobWhereClause({
-      filters: { workMode: "remote", country: "United States" },
+      filters: { workMode: "remote", country: "India" },
       searchConstraint,
     });
 
@@ -22,7 +22,12 @@ describe("buildJobWhereClause", () => {
         {
           AND: [
             { workMode: "remote" },
-            { country: { equals: "United States", mode: "insensitive" } },
+            {
+              OR: [
+                { country: { contains: "India", mode: "insensitive" } },
+                { location: { contains: "India", mode: "insensitive" } },
+              ],
+            },
           ],
         },
         {

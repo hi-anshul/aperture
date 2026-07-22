@@ -155,8 +155,9 @@ function extractCountryFromText(value: string | null): string | null {
     return null;
   }
 
+  // "San Francisco, CA" → United States (do not treat the state code as a country)
   if (US_STATE_SUFFIX_PATTERN.test(normalized)) {
-    return null;
+    return "United States";
   }
 
   if (lastSegment.length === 2 && /^[A-Z]{2}$/.test(lastSegment)) {

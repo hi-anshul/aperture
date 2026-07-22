@@ -1,0 +1,80 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "job-1001",
+      "title": "Software Engineer",
+      "department": "Engineering",
+      "team": "Platform",
+      "employmentType": "FullTime",
+      "location": "San Francisco, CA",
+      "secondaryLocations": [{ "location": "New York, NY" }],
+      "publishedAt": "2026-06-02T08:58:57.000+00:00",
+      "isListed": true,
+      "isRemote": false,
+      "workplaceType": "Hybrid",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "San Francisco",
+          "addressRegion": "CA",
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/example/job-1001",
+      "applyUrl": "https://jobs.ashbyhq.com/example/job-1001/application",
+      "descriptionHtml": "<p>Build reliable systems for our core platform.</p>",
+      "descriptionPlain": "Build reliable systems for our core platform.",
+      "compensation": {
+        "compensationTierSummary": "$140K - $180K",
+        "scrapeableCompensationSalarySummary": "$140K - $180K",
+        "summaryComponents": [
+          {
+            "compensationType": "Salary",
+            "interval": "1 YEAR",
+            "currencyCode": "USD",
+            "minValue": 140000,
+            "maxValue": 180000
+          }
+        ],
+        "compensationTiers": [
+          {
+            "title": "US",
+            "components": [
+              {
+                "compensationType": "Salary",
+                "interval": "1 YEAR",
+                "currencyCode": "USD",
+                "minValue": 140000,
+                "maxValue": 180000
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "job-1002",
+      "title": "Contract Product Manager",
+      "department": "Product",
+      "team": "Growth",
+      "employmentType": "Contract",
+      "location": "Remote",
+      "secondaryLocations": [],
+      "publishedAt": "2026-07-02T03:24:50.000+00:00",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "",
+          "addressRegion": "",
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/example/job-1002",
+      "applyUrl": "https://jobs.ashbyhq.com/example/job-1002/application",
+      "descriptionHtml": "<p>Own roadmap delivery for a product area.</p>",
+      "descriptionPlain": "Own roadmap delivery for a product area."
+    }
+  ]
+}

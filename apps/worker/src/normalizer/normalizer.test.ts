@@ -6,7 +6,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   NormalizerEngine,
+  normalizeAshbyJob,
   normalizeGreenhouseJob,
+  normalizeLeverJob,
   normalizeWorkdayJob,
 } from "./index";
 
@@ -16,6 +18,16 @@ const fixtureJobs = JSON.parse(readFileSync(fixturePath, "utf-8")) as RawJob[];
 const workdayFixturePath = join(__dirname, "fixtures", "workday-raw-jobs.json");
 const workdayFixtureJobs = JSON.parse(
   readFileSync(workdayFixturePath, "utf-8"),
+) as RawJob[];
+
+const leverFixturePath = join(__dirname, "fixtures", "lever-raw-jobs.json");
+const leverFixtureJobs = JSON.parse(
+  readFileSync(leverFixturePath, "utf-8"),
+) as RawJob[];
+
+const ashbyFixturePath = join(__dirname, "fixtures", "ashby-raw-jobs.json");
+const ashbyFixtureJobs = JSON.parse(
+  readFileSync(ashbyFixturePath, "utf-8"),
 ) as RawJob[];
 
 const syncedAt = new Date("2026-07-08T12:00:00.000Z");
@@ -142,20 +154,86 @@ describe("NormalizerEngine", () => {
     expect(normalized[1]?.employmentType).toBe("part-time");
   });
 
+  it("routes lever RawJob entries through the Lever normalizer", () => {
+    const engine = new NormalizerEngine();
+    const normalized = engine.normalizeMany(leverFixtureJobs.slice(0, 2), {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]?.sourcePlatform).toBe("lever");
+    expect(normalized[0]?.title).toBe("Software Engineer");
+    expect(normalized[0]?.workMode).toBe("hybrid");
+    expect(normalized[1]?.workMode).toBe("remote");
+    expect(normalized[1]?.employmentType).toBe("contract");
+  });
+
+  it("routes ashby RawJob entries through the Ashby normalizer", () => {
+    const engine = new NormalizerEngine();
+    const normalized = engine.normalizeMany(ashbyFixtureJobs.slice(0, 2), {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]?.sourcePlatform).toBe("ashby");
+    expect(normalized[0]?.title).toBe("Software Engineer");
+    expect(normalized[0]?.workMode).toBe("hybrid");
+    expect(normalized[1]?.workMode).toBe("remote");
+    expect(normalized[1]?.employmentType).toBe("contract");
+  });
+
+  it("routes static-html and react-rendered RawJob entries through the HTML normalizer", () => {
+    const engine = new NormalizerEngine();
+    const jobs = [
+      {
+        sourcePlatform: "static-html" as const,
+        sourceUrl: "https://careers.example.com/careers/swe",
+        externalId: "/careers/swe",
+        raw: {
+          title: "Software Engineer",
+          location: "Remote",
+          description: "Full-time role with visa sponsorship",
+        },
+      },
+      {
+        sourcePlatform: "react-rendered" as const,
+        sourceUrl: "https://jobs.example.com/careers/pm",
+        externalId: "/careers/pm",
+        raw: {
+          title: "Product Manager",
+          location: "Hybrid - NYC",
+          description: null,
+        },
+      },
+    ];
+
+    const normalized = engine.normalizeMany(jobs, { companyId, syncedAt });
+
+    expect(normalized).toHaveLength(2);
+    expect(normalized[0]?.sourcePlatform).toBe("static-html");
+    expect(normalized[0]?.workMode).toBe("remote");
+    expect(normalized[0]?.employmentType).toBe("full-time");
+    expect(normalized[0]?.visaSponsorship).toBe(true);
+    expect(normalized[1]?.sourcePlatform).toBe("react-rendered");
+    expect(normalized[1]?.workMode).toBe("hybrid");
+  });
+
   it("throws for unsupported platforms", () => {
     const engine = new NormalizerEngine();
 
     expect(() =>
       engine.normalize(
         {
-          sourcePlatform: "lever",
-          sourceUrl: "https://jobs.lever.co/example/abc",
+          sourcePlatform: "smartrecruiters",
+          sourceUrl: "https://jobs.smartrecruiters.com/example/abc",
           externalId: "abc",
           raw: {},
         },
         { companyId, syncedAt },
       ),
-    ).toThrow('No normalizer registered for platform "lever"');
+    ).toThrow('No normalizer registered for platform "smartrecruiters"');
   });
 });
 
@@ -188,5 +266,116 @@ describe("normalizeWorkdayJob", () => {
     expect(normalized.description).toBe("");
     expect(normalized.location).toBeNull();
     expect(normalized.employmentType).toBeNull();
+  });
+
+  it("derives country from Workday location prefixes when detail country is missing", () => {
+    const normalized = normalizeWorkdayJob(
+      {
+        sourcePlatform: "workday",
+        sourceUrl:
+          "https://corporate.visa.com/en/jobs/job/US/Austin/Role_R1",
+        externalId: "R1",
+        raw: {
+          title: "Software Engineer",
+          locationsText: "US - Austin, TX",
+          externalPath: "/job/US/Austin/Role_R1",
+        },
+      },
+      { companyId, syncedAt },
+    );
+
+    expect(normalized.location).toBe("US - Austin, TX");
+    expect(normalized.country).toBe("United States");
+  });
+});
+
+describe("normalizeLeverJob", () => {
+  it("maps a Lever RawJob fixture into a NormalizedJob", () => {
+    const normalized = normalizeLeverJob(leverFixtureJobs[0]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.externalId).toBe("posting-1001");
+    expect(normalized.sourcePlatform).toBe("lever");
+    expect(normalized.title).toBe("Software Engineer");
+    expect(normalized.description).toContain(
+      "Build reliable systems for our core platform.",
+    );
+    expect(normalized.description).toContain("Requirements");
+    expect(normalized.location).toBe("San Francisco, CA");
+    expect(normalized.country).toBe("US");
+    expect(normalized.workMode).toBe("hybrid");
+    expect(normalized.employmentType).toBe("full-time");
+    expect(normalized.salaryMin).toBe(140000);
+    expect(normalized.salaryMax).toBe(180000);
+    expect(normalized.salaryCurrency).toBe("USD");
+    expect(normalized.postedAt).toEqual(new Date(1717313937000));
+    expect(normalized.tags).toEqual([
+      "Engineering",
+      "Product",
+      "San Francisco, CA",
+      "full-time",
+      "hybrid",
+    ]);
+  });
+
+  it("handles missing optional Lever fields gracefully", () => {
+    const normalized = normalizeLeverJob(leverFixtureJobs[2]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.title).toBe("Untitled role");
+    expect(normalized.description).toBe("");
+    expect(normalized.location).toBeNull();
+    expect(normalized.employmentType).toBeNull();
+    expect(normalized.workMode).toBeNull();
+  });
+});
+
+describe("normalizeAshbyJob", () => {
+  it("maps an Ashby RawJob fixture into a NormalizedJob", () => {
+    const normalized = normalizeAshbyJob(ashbyFixtureJobs[0]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.externalId).toBe("job-1001");
+    expect(normalized.sourcePlatform).toBe("ashby");
+    expect(normalized.title).toBe("Software Engineer");
+    expect(normalized.description).toBe(
+      "Build reliable systems for our core platform.",
+    );
+    expect(normalized.location).toBe("San Francisco, CA");
+    expect(normalized.country).toBe("United States");
+    expect(normalized.workMode).toBe("hybrid");
+    expect(normalized.employmentType).toBe("full-time");
+    expect(normalized.salaryMin).toBe(140000);
+    expect(normalized.salaryMax).toBe(180000);
+    expect(normalized.salaryCurrency).toBe("USD");
+    expect(normalized.postedAt).toEqual(
+      new Date("2026-06-02T08:58:57.000+00:00"),
+    );
+    expect(normalized.tags).toEqual([
+      "Engineering",
+      "Platform",
+      "San Francisco, CA",
+      "full-time",
+      "hybrid",
+    ]);
+  });
+
+  it("handles missing optional Ashby fields gracefully", () => {
+    const normalized = normalizeAshbyJob(ashbyFixtureJobs[2]!, {
+      companyId,
+      syncedAt,
+    });
+
+    expect(normalized.title).toBe("Untitled role");
+    expect(normalized.description).toBe("");
+    expect(normalized.location).toBeNull();
+    expect(normalized.employmentType).toBeNull();
+    expect(normalized.workMode).toBeNull();
   });
 });

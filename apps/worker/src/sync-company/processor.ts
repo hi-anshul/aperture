@@ -20,7 +20,7 @@ import {
   handoffJobDiff,
   type ExistingJobForDiff,
 } from "../change-detection";
-import { FetchError } from "../fetch-engine";
+import { createFetchEngine, FetchError } from "../fetch-engine";
 import type { NotifyQueue, WatchlistNotifyStore } from "../notifications";
 import { createNormalizerEngine } from "../normalizer";
 import { ParserError } from "../parser-engine";
@@ -198,7 +198,17 @@ export async function processSyncCompany(
       }
     }
 
-    const registry = createDefaultRegistry();
+    const fetchEngine = createFetchEngine();
+    const registry = createDefaultRegistry({
+      browserFetchHtml: async (url, fetchCompanyId) => {
+        const result = await fetchEngine.fetch({
+          url,
+          companyId: fetchCompanyId,
+          mode: "browser",
+        });
+        return result.body;
+      },
+    });
     const connector =
       (await registry.resolve(company.careersUrl)) ??
       registry.list().find((entry) => entry.platform === platform);

@@ -31,7 +31,8 @@ export function normalizeWorkdayJob(
     locationText,
     description,
   );
-  const country = normalizeText(info?.country);
+  const country =
+    normalizeText(info?.country) ?? deriveCountryFromLocation(locationText);
   const employmentType = parseEmploymentType(
     normalizeText(info?.timeType),
     title,
@@ -206,6 +207,158 @@ function parseVisaSponsorship(description: string): boolean | null {
   }
 
   return null;
+}
+
+function deriveCountryFromLocation(location: string | null): string | null {
+  if (!location) {
+    return null;
+  }
+
+  const trimmed = location.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const prefixMatch = /^([A-Z]{2})\s*[-–—]\s*/i.exec(trimmed);
+  if (prefixMatch?.[1]) {
+    const fromCode = countryFromIsoCode(prefixMatch[1]);
+    if (fromCode) {
+      return fromCode;
+    }
+  }
+
+  const segments = trimmed
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const lastSegment = segments.at(-1);
+  if (!lastSegment) {
+    return null;
+  }
+
+  const fromName = countryFromDisplayName(lastSegment);
+  if (fromName) {
+    return fromName;
+  }
+
+  return null;
+}
+
+const ISO_COUNTRY_CODES: Record<string, string> = {
+  US: "United States",
+  GB: "United Kingdom",
+  UK: "United Kingdom",
+  IN: "India",
+  CA: "Canada",
+  AU: "Australia",
+  DE: "Germany",
+  FR: "France",
+  IE: "Ireland",
+  NL: "Netherlands",
+  SG: "Singapore",
+  JP: "Japan",
+  BR: "Brazil",
+  MX: "Mexico",
+  ES: "Spain",
+  IT: "Italy",
+  SE: "Sweden",
+  CH: "Switzerland",
+  AE: "United Arab Emirates",
+  NZ: "New Zealand",
+  PL: "Poland",
+  CZ: "Czech Republic",
+  RO: "Romania",
+  TW: "Taiwan",
+  KR: "South Korea",
+  CN: "China",
+  HK: "Hong Kong",
+  PH: "Philippines",
+  MY: "Malaysia",
+  ID: "Indonesia",
+  TH: "Thailand",
+  VN: "Vietnam",
+  ZA: "South Africa",
+  NG: "Nigeria",
+  KE: "Kenya",
+  EG: "Egypt",
+  IL: "Israel",
+  TR: "Turkey",
+  AR: "Argentina",
+  CL: "Chile",
+  CO: "Colombia",
+  PE: "Peru",
+  PT: "Portugal",
+  AT: "Austria",
+  BE: "Belgium",
+  DK: "Denmark",
+  FI: "Finland",
+  NO: "Norway",
+  LU: "Luxembourg",
+  CI: "Cote D'Ivoire",
+};
+
+const COUNTRY_DISPLAY_NAMES = new Map<string, string>(
+  [
+    "United States",
+    "United States of America",
+    "United Kingdom",
+    "Great Britain",
+    "India",
+    "Canada",
+    "Australia",
+    "Germany",
+    "France",
+    "Ireland",
+    "Netherlands",
+    "Singapore",
+    "Japan",
+    "Brazil",
+    "Mexico",
+    "Spain",
+    "Italy",
+    "Sweden",
+    "Switzerland",
+    "United Arab Emirates",
+    "New Zealand",
+    "Poland",
+    "Czech Republic",
+    "Romania",
+    "Taiwan",
+    "South Korea",
+    "China",
+    "Hong Kong",
+    "Philippines",
+    "Malaysia",
+    "Indonesia",
+    "Thailand",
+    "Vietnam",
+    "South Africa",
+    "Nigeria",
+    "Kenya",
+    "Egypt",
+    "Israel",
+    "Turkey",
+    "Argentina",
+    "Chile",
+    "Colombia",
+    "Peru",
+    "Portugal",
+    "Austria",
+    "Belgium",
+    "Denmark",
+    "Finland",
+    "Norway",
+    "Luxembourg",
+    "Cote D'Ivoire",
+  ].map((name) => [name.toLowerCase(), name]),
+);
+
+function countryFromIsoCode(code: string): string | null {
+  return ISO_COUNTRY_CODES[code.toUpperCase()] ?? null;
+}
+
+function countryFromDisplayName(value: string): string | null {
+  return COUNTRY_DISPLAY_NAMES.get(value.trim().toLowerCase()) ?? null;
 }
 
 function buildTags(

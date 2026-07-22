@@ -1,0 +1,71 @@
+[
+  {
+    "sourcePlatform": "ashby",
+    "sourceUrl": "https://jobs.ashbyhq.com/example/job-1001",
+    "externalId": "job-1001",
+    "raw": {
+      "id": "job-1001",
+      "title": "Software Engineer",
+      "department": "Engineering",
+      "team": "Platform",
+      "employmentType": "FullTime",
+      "location": "San Francisco, CA",
+      "publishedAt": "2026-06-02T08:58:57.000+00:00",
+      "isRemote": false,
+      "workplaceType": "Hybrid",
+      "address": {
+        "postalAddress": {
+          "addressLocality": "San Francisco",
+          "addressRegion": "CA",
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/example/job-1001",
+      "descriptionPlain": "Build reliable systems for our core platform.",
+      "descriptionHtml": "<p>Build reliable systems for our core platform.</p>",
+      "compensation": {
+        "summaryComponents": [
+          {
+            "compensationType": "Salary",
+            "interval": "1 YEAR",
+            "currencyCode": "USD",
+            "minValue": 140000,
+            "maxValue": 180000
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sourcePlatform": "ashby",
+    "sourceUrl": "https://jobs.ashbyhq.com/example/job-1002",
+    "externalId": "job-1002",
+    "raw": {
+      "id": "job-1002",
+      "title": "Contract Product Manager",
+      "department": "Product",
+      "team": "Growth",
+      "employmentType": "Contract",
+      "location": "Remote",
+      "publishedAt": "2026-07-02T03:24:50.000+00:00",
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "address": {
+        "postalAddress": {
+          "addressCountry": "United States"
+        }
+      },
+      "jobUrl": "https://jobs.ashbyhq.com/example/job-1002",
+      "descriptionPlain": "Own roadmap delivery for a product area."
+    }
+  },
+  {
+    "sourcePlatform": "ashby",
+    "sourceUrl": "https://jobs.ashbyhq.com/example/job-empty",
+    "externalId": "job-empty",
+    "raw": {
+      "id": "job-empty",
+      "jobUrl": "https://jobs.ashbyhq.com/example/job-empty"
+    }
+  }
+]

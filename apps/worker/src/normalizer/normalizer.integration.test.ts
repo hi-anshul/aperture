@@ -67,7 +67,7 @@ describe("parse → normalize pipeline", () => {
       title: "Software Engineer",
       location: "San Francisco, CA",
       workMode: null,
-      country: null,
+      country: "United States",
       employmentType: null,
       description: "",
       salaryMin: null,

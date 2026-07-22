@@ -1,0 +1,55 @@
+[
+  {
+    "id": "posting-1001",
+    "text": "Software Engineer",
+    "categories": {
+      "location": "San Francisco, CA",
+      "commitment": "Full-time",
+      "team": "Engineering",
+      "department": "Product",
+      "allLocations": ["San Francisco, CA", "New York, NY"]
+    },
+    "country": "US",
+    "description": "<p>Build reliable systems for our core platform.</p>",
+    "descriptionPlain": "Build reliable systems for our core platform.",
+    "lists": [
+      {
+        "text": "Requirements",
+        "content": "<li>TypeScript</li><li>Distributed systems</li>"
+      }
+    ],
+    "additional": "",
+    "additionalPlain": "",
+    "hostedUrl": "https://jobs.lever.co/example/posting-1001",
+    "applyUrl": "https://jobs.lever.co/example/posting-1001/apply",
+    "workplaceType": "hybrid",
+    "salaryRange": {
+      "currency": "USD",
+      "interval": "per-year-salary",
+      "min": 140000,
+      "max": 180000
+    },
+    "createdAt": 1717313937000
+  },
+  {
+    "id": "posting-1002",
+    "text": "Contract Product Manager",
+    "categories": {
+      "location": "Remote",
+      "commitment": "Contract",
+      "team": "Product",
+      "department": "Product",
+      "allLocations": ["Remote"]
+    },
+    "country": "US",
+    "description": "<p>Own roadmap delivery for a product area.</p>",
+    "descriptionPlain": "Own roadmap delivery for a product area.",
+    "lists": [],
+    "additional": "",
+    "additionalPlain": "",
+    "hostedUrl": "https://jobs.lever.co/example/posting-1002",
+    "applyUrl": "https://jobs.lever.co/example/posting-1002/apply",
+    "workplaceType": "remote",
+    "createdAt": 1720000000000
+  }
+]

@@ -154,9 +154,25 @@ describe("ConnectorRegistry", () => {
     expect(connector?.platform).toBe("greenhouse");
   });
 
-  it("resolve returns undefined for unsupported URLs", async () => {
+  it("resolve picks Lever connector for jobs.lever.co URLs", async () => {
     const registry = createDefaultRegistry();
     const connector = await registry.resolve("https://jobs.lever.co/stripe");
+
+    expect(connector?.platform).toBe("lever");
+  });
+
+  it("resolve picks Ashby connector for jobs.ashbyhq.com URLs", async () => {
+    const registry = createDefaultRegistry();
+    const connector = await registry.resolve("https://jobs.ashbyhq.com/acme");
+
+    expect(connector?.platform).toBe("ashby");
+  });
+
+  it("resolve returns undefined for unsupported URLs", async () => {
+    const registry = createDefaultRegistry();
+    const connector = await registry.resolve(
+      "https://careers.example.com/unknown-ats",
+    );
 
     expect(connector).toBeUndefined();
   });

@@ -129,7 +129,7 @@ export function FilterSidebar() {
             type="text"
             value={filters.country}
             onChange={(event) => filters.setCountry(event.target.value)}
-            placeholder="e.g. United States"
+            placeholder="e.g. India, United States"
             className={filterInputClassName()}
           />
         </FilterSection>

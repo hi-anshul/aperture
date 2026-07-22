@@ -1,7 +1,13 @@
 import type { RawJob } from "@aperture/shared";
 
 import { buildParserError } from "./errors";
+import { parseAshbyRequest } from "./ashby/ashby.parser";
 import { parseGreenhouseRequest } from "./greenhouse/greenhouse.parser";
+import {
+  parseReactRenderedRequest,
+  parseStaticHtmlRequest,
+} from "./html/html.parser";
+import { parseLeverRequest } from "./lever/lever.parser";
 import { parseWorkdayRequest } from "./workday/workday.parser";
 import type { ParseRequest, ParseSuccess } from "./types";
 
@@ -10,8 +16,16 @@ export class ParserEngine {
     switch (request.platform) {
       case "greenhouse":
         return parseGreenhouseRequest(request);
+      case "lever":
+        return parseLeverRequest(request);
+      case "ashby":
+        return parseAshbyRequest(request);
       case "workday":
         return parseWorkdayRequest(request);
+      case "static-html":
+        return parseStaticHtmlRequest(request);
+      case "react-rendered":
+        return parseReactRenderedRequest(request);
       default:
         throw buildParserError({
           code: "UNSUPPORTED_PLATFORM",
